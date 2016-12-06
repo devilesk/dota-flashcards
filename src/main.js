@@ -1,7 +1,6 @@
 var $ = require('jquery');
 var ko = require('knockout');
 var HeroCalc = require('dota-hero-calculator-library');
-require('./ko.extenders.numeric');
 require('./ko.bindingHandlers.checkbox');
 var BitArray = require('bit-array-js');
 $(function () {
