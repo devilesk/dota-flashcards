@@ -237,6 +237,9 @@ $(function () {
                     }
                 }
                 
+                if (tooltip.charAt(tooltip.length - 1) === ':') {
+                    tooltip = tooltip.substring(0, tooltip.length - 1);
+                }
                 var maxAbilityLevel = heroModel.getAbilityLevelMax(ability);
                 var abilityLevel = getRandomInt(1, maxAbilityLevel);
                 if (abilityLevel > values.length) {
@@ -246,7 +249,7 @@ $(function () {
                     var value = values[Math.max(0, abilityLevel - 1)];
                 }
                 
-                var question = self.heroModel.heroData().displayname + '<br>' + ability.displayname + '<br>Level ' + abilityLevel + ' ' + tooltip;
+                var question = self.heroModel.heroData().displayname + '<br>' + ability.displayname + '<br>Level ' + abilityLevel + '<br>' + tooltip;
                 //console.log(question, values, value);
                 return { question: question, answer: value };
             }

@@ -8,7 +8,7 @@
     <meta http-equiv="content-type" content="text/html;charset=UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
-    <link rel="stylesheet" href="app.min.929ef5bc02.css">
+    <link rel="stylesheet" href="app.min.a4f65096f8.css">
 </head>
 
 <body>
@@ -62,15 +62,15 @@
                 </div>
             </div>
             <div role="tabpanel" class="tab-pane" id="other">
-                <div class="form-group" data-toggle="buttons">
-                    <label class="btn btn-block btn-primary">
-                        <input type="checkbox" data-bind="checkbox: textToSpeech" /> Text to Speech
-                    </label>
-                    <label class="btn btn-block btn-primary">
-                        <input type="checkbox" data-bind="checkbox: autoPlay" /> Auto-play
-                    </label>
-                </div>
                 <div class="col-md-12">
+                    <div class="form-group" data-toggle="buttons">
+                        <label class="btn btn-block btn-primary">
+                            <input type="checkbox" data-bind="checkbox: textToSpeech" /> Text to Speech
+                        </label>
+                        <label class="btn btn-block btn-primary">
+                            <input type="checkbox" data-bind="checkbox: autoPlay" /> Auto-play
+                        </label>
+                    </div>
                     <div class="form-group">
                         <label>Auto-play Delay</label>
                         <input class="form-control" type="text" data-bind="value: autoPlayDelay"/>
@@ -85,6 +85,31 @@
                             <input class="range-slider form-control" type="range" min="1" max="25" data-bind="value: maxLevel, valueUpdate: 'input'"/>
                         </div>
                     </div>
+                    <div class="form-group">
+                        <label>Question Types</label>
+                        <div class="btn-group btn-group-justified" data-toggle="buttons" data-bind="checkbox: questionTypes">
+                            <label class="btn btn-primary">
+                                <input type="checkbox" value="attributes" /> Attributes
+                            </label>
+                            <label class="btn btn-primary">
+                                <input type="checkbox" value="abilities" /> Abilities
+                            </label>
+                        </div>
+                    </div>
+                    <div class="form-group" data-bind="visible: abilityQuestionTypesVisible">
+                        <label>Ability Question Types</label>
+                        <div class="btn-group btn-group-justified" data-toggle="buttons" data-bind="checkbox: abilityQuestionTypes">
+                            <label class="btn btn-primary">
+                                <input type="checkbox" value="attributes" /> Properties
+                            </label>
+                            <label class="btn btn-primary">
+                                <input type="checkbox" value="cooldown" /> Cooldown
+                            </label>
+                            <label class="btn btn-primary">
+                                <input type="checkbox" value="manacost" /> Mana Cost
+                            </label>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -93,7 +118,7 @@
     <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/knockout/3.4.0/knockout-min.js"></script>
     <script src='https://code.responsivevoice.org/responsivevoice.js'></script>
-    <script src="bundle.min.dca815186b.js"></script>
+    <script src="bundle.min.e63cb64aa5.js"></script>
 </body>
 
 </html>
