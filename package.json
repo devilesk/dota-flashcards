@@ -1,0 +1,47 @@
+{
+  "name": "dota-flashcards",
+  "version": "0.1.0",
+  "description": "Dota 2 Flashcards App",
+  "main": "main.js",
+  "scripts": {
+    "browserify": "browserify main.js -u jquery -u knockout > www/bundle.js",
+    "uglify": "uglifyjs www/bundle.js > build/bundle.min.js",
+    "clean:build": "rm -rf build/*",
+    "copy:html": "cp www/*.html build/",
+    "copy": "npm run copy:html",
+    "replace:html": "replace 'bundle.js' 'bundle.min.js' build/index.html",
+    "replace:css": "replace 'app.css' 'app.min.css' build/index.html",
+    "replace": "npm run replace:html && npm run replace:css",
+    "build:css": "cleancss -o build/app.min.css www/app.css",
+    "build:js": "npm run browserify && npm run uglify",
+    "build": "npm run clean:build && npm run build:js && npm run copy && npm run replace && npm run build:css",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "stage:rev": "node scripts/rev.js",
+    "stage": "npm run build && npm run stage:rev",
+    "deploy:copy": "node scripts/deploy.js",
+    "deploy": "npm run stage && npm run deploy:copy"
+  },
+  "author": "devilesk <devilesk@gmail.com> (http://devilesk.com)",
+  "license": "ISC",
+  "devDependencies": {
+    "bit-array-js": "^0.1.1",
+    "browserify": "^13.1.1",
+    "browserify-shim": "^3.8.12",
+    "clean-css": "^3.4.21",
+    "dota-hero-calculator-library": "^0.6.1",
+    "jquery": "^3.1.1",
+    "knockout": "^3.4.1",
+    "replace": "^0.3.0",
+    "rev-hash": "^1.0.0",
+    "uglify-js": "^2.7.5"
+  },
+  "browserify": {
+    "transform": [
+      "browserify-shim"
+    ]
+  },
+  "browserify-shim": {
+    "knockout": "global:ko",
+    "jquery": "global:$"
+  }
+}
