@@ -29,7 +29,7 @@
     "browserify": "^13.1.1",
     "browserify-shim": "^3.8.12",
     "clean-css": "^3.4.21",
-    "dota-hero-calculator-library": "^0.6.1",
+    "dota-hero-calculator-library": "^0.7.0",
     "jquery": "^3.1.1",
     "knockout": "^3.4.1",
     "replace": "^0.3.0",
