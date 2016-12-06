@@ -2,10 +2,10 @@
   "name": "dota-flashcards",
   "version": "0.1.0",
   "description": "Dota 2 Flashcards App",
-  "main": "main.js",
+  "main": "src/main.js",
   "scripts": {
-    "browserify": "browserify main.js -u jquery -u knockout > www/bundle.js",
-    "uglify": "uglifyjs www/bundle.js > build/bundle.min.js",
+    "browserify": "browserify src/main.js -u jquery -u knockout > www/bundle.js",
+    "uglify": "uglifyjs -m -c -- www/bundle.js > build/bundle.min.js",
     "clean:build": "rm -rf build/*",
     "copy:html": "cp www/*.html build/",
     "copy": "npm run copy:html",
@@ -19,7 +19,8 @@
     "stage:rev": "node scripts/rev.js",
     "stage": "npm run build && npm run stage:rev",
     "deploy:copy": "node scripts/deploy.js",
-    "deploy": "npm run stage && npm run deploy:copy"
+    "deploy": "npm run stage && npm run deploy:copy",
+    "watch": "watch 'npm run browserify' src"
   },
   "author": "devilesk <devilesk@gmail.com> (http://devilesk.com)",
   "license": "ISC",
@@ -33,7 +34,8 @@
     "knockout": "^3.4.1",
     "replace": "^0.3.0",
     "rev-hash": "^1.0.0",
-    "uglify-js": "^2.7.5"
+    "uglify-js": "^2.7.5",
+    "watch": "^1.0.1"
   },
   "browserify": {
     "transform": [

@@ -1,417 +1,5 @@
 (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
 (function (global){
-var $ = (typeof window !== "undefined" ? window['$'] : typeof global !== "undefined" ? global['$'] : null);
-var ko = (typeof window !== "undefined" ? window['ko'] : typeof global !== "undefined" ? global['ko'] : null);
-var HeroCalc = require('dota-hero-calculator-library');
-var BitArray = require('bit-array-js');
-
-$(function () {
-    
-    ko.extenders.numeric = function(target, opts) {
-        //create a writable computed observable to intercept writes to our observable
-        var result = ko.pureComputed({
-            read: target,  //always return the original observables value
-            write: function(newValue) {
-                var current = target(),
-                    roundingMultiplier = Math.pow(10, (opts === Object(opts) ? opts.precision : opts) || 0),
-                    newValueAsNum = isNaN(newValue) ? (opts.defaultValue || 0) : +newValue,
-                    valueToWrite = Math.round(newValueAsNum * roundingMultiplier) / roundingMultiplier;
-     
-                //only write if it changed
-                if (valueToWrite !== current) {
-                    target(valueToWrite);
-                } else {
-                    //if the rounded value is the same, but a different value was written, force a notification for the current field
-                    if (newValue !== current) {
-                        target.notifySubscribers(valueToWrite);
-                    }
-                }
-            }
-        }).extend({ notify: 'always' });
-     
-        //initialize with current value to make sure it is rounded appropriately
-        result(target());
-     
-        //return the new computed observable
-        return result;
-    };
-
-    // Knockout checked binding doesn't work with Bootstrap checkboxes
-    ko.bindingHandlers.checkbox = {
-        init: function (element, valueAccessor) {
-            var $element = $(element),
-                handler = function (e) {
-                // we need to handle change event after bootsrap will handle its event
-                // to prevent incorrect changing of checkbox state
-                setTimeout(function () {
-                    var $checkbox = $(e.target),
-                        value = valueAccessor(),
-                        data = $checkbox.val(),
-                        isChecked = $checkbox.parent().hasClass('active');
-                    
-                    if(!$checkbox.prop('disbled')) {
-                        if (ko.unwrap(value) instanceof Array) {
-                            var index = ko.utils.arrayIndexOf(ko.unwrap(value), (data));
-
-                            if (isChecked && (index === -1)) {
-                                value.push(data);
-                            } else if (!isChecked && (index !== -1)) {
-                                value.splice(index, 1);
-                            }
-                        } else {
-                            value(isChecked);
-                        }
-                    }
-                }, 0);
-            };
-
-            if ($element.attr('data-toggle') === 'buttons' && $element.find('input:checkbox').length) {
-
-                if (!(ko.unwrap(valueAccessor()) instanceof Array)) {
-                    throw new Error('checkbox binding should be used only with array or observableArray values in this case');
-                }
-
-                $element.on('change', 'input:checkbox', handler);
-            } else if ($element.attr('type') === 'checkbox') {
-
-                if (!ko.isObservable(valueAccessor())) {
-                    throw new Error('checkbox binding should be used only with observable values in this case');
-                }
-
-                $element.on('change', handler);
-            } else {
-                throw new Error('checkbox binding should be used only with bootstrap checkboxes');
-            }
-        },
-
-        update: function (element, valueAccessor) {
-            var $element = $(element),
-                value = ko.unwrap(valueAccessor()),
-                isChecked;
-
-            if (value instanceof Array) {
-                if ($element.attr('data-toggle') === 'buttons') {
-                    $element.find('input:checkbox').each(function (index, el) {
-                        isChecked = ko.utils.arrayIndexOf(value, el.value) !== -1;
-                        $(el).parent().toggleClass('active', isChecked);
-                        el.checked = isChecked;
-                    });
-                } else {
-                    isChecked = ko.utils.arrayIndexOf(value, $element.val()) !== -1;
-                    $element.toggleClass('active', isChecked);
-                    $element.find('input').prop('checked', isChecked);
-                }
-            } else {
-                isChecked = !!value;
-                $element.prop('checked', isChecked);
-                $element.parent().toggleClass('active', isChecked);
-            }
-        }
-    };
-
-    HeroCalc.init("/media/js/herodata.json","/media/js/itemdata.json","/media/js/unitdata.json", function () {
-        var attributeOptions = [
-            {id: "totalArmorPhysical", name: "Armor"},
-            {id: "totalArmorPhysicalReduction", name: "Physical Damage Reduction"},
-            {id: "totalMagicResistance", name: "Magic Resistance"},
-            {id: "totalattackrange", name: "Attack Range"},
-            {id: "totalAgi", name: "Agility"},
-            {id: "totalInt", name: "Intelligence"},
-            {id: "totalStr", name: "Strength"},
-            {id: "health", name: "HP"},
-            {id: "mana", name: "Mana"},
-            {id: "healthregen", name: "HP Regen"},
-            {id: "manaregen", name: "Mana Regen"},
-            {id: "totalMovementSpeed", name: "Movement Speed"},
-            {id: "totalTurnRate", name: "Turn Rate"},
-            {id: "baseDamageMin", name: "Attack Damage Min"},
-            {id: "baseDamageMax", name: "Attack Damage Max"},
-            {id: "baseDamageAvg", name: "Attack Damage Avg"},
-            {id: "ehpPhysical", name: "EHP"},
-            {id: "ehpMagical", name: "Magical EHP"},
-            {id: "primaryAttribute", name: "Primary Attr"},
-            {id: "projectilespeed", name: "Missile Speed"},
-            {id: "attributeagilitygain", name: "Agi Gain"},
-            {id: "attributestrengthgain", name: "Str Gain"},
-            {id: "attributeintelligencegain", name: "Int Gain"},
-            {id: "attributebaseagility", name: "Base Agi"},
-            {id: "attributebaseintelligence", name: "Base Int"},
-            {id: "attributebasestrength", name: "Base Str"},
-            {id: "visionrangeday", name: "Day Vision Range"},
-            {id: "visionrangenight", name: "Night Vision Range"},
-        ];
-        
-        var query_string = (function(a) {
-            if (a == "") return {};
-            var b = {};
-            for (var i = 0; i < a.length; ++i)
-            {
-                var p=a[i].split('=', 2);
-                if (p.length == 1)
-                    b[p[0]] = "";
-                else
-                    b[p[0]] = decodeURIComponent(p[1].replace(/\+/g, " "));
-            }
-            return b;
-        })(window.location.search.substr(1).split('&'));
-        
-        // Explicitly save/update a url parameter using HTML5's replaceState().
-        function updateQueryStringParam(key, value) {
-            baseUrl = [location.protocol, '//', location.host, location.pathname].join('');
-            urlQueryString = document.location.search;
-            var newParam = key + '=' + value,
-                params = '?' + newParam;
-
-            // If the "search" string exists, then build params from it
-            if (urlQueryString) {
-                keyRegex = new RegExp('([\?&])' + key + '[^&]*');
-                // If param exists already, update it
-                if (urlQueryString.match(keyRegex) !== null) {
-                    params = urlQueryString.replace(keyRegex, "$1" + newParam);
-                } else { // Otherwise, add it to end of query string
-                    params = urlQueryString + '&' + newParam;
-                }
-            }
-            window.history.replaceState({}, "", baseUrl + params);
-        }
-        
-        function getRandomInt(min, max) {
-            return Math.floor(Math.random() * (max - min + 1)) + min;
-        }
-        
-        function shuffle(array) {
-            var counter = array.length,
-                temp, index;
-
-            // While there are elements in the array
-            while (counter > 0) {
-                // Pick a random index
-                index = Math.floor(Math.random() * counter);
-
-                // Decrease counter by 1
-                counter--;
-
-                // And swap the last element with it
-                temp = array[counter];
-                array[counter] = array[index];
-                array[index] = temp;
-            }
-
-            return array;
-        };
-        
-        function getAttributeValue(heroModel, attribute) {
-            //console.log('getAttributeValue', heroModel, attribute);
-            if (heroModel.hasOwnProperty(attribute)) {
-                return heroModel[attribute]();
-            }
-            else {
-                return heroModel.heroData()[attribute];
-            }
-        }
-        
-        var attributes = attributeOptions.map(function (a) { return a.id; });
-        
-        function getHeroID(hero) {
-            return HeroCalc.Data.heroData['npc_dota_hero_' + hero].HeroID;
-        }
-
-        function ViewModel() {
-            var self = this;
-            this.attributes = ko.observableArray(attributeOptions);
-            this.heroes = HeroCalc.HeroOptions;
-
-            this.selectedAttributesBitArray = new BitArray(32);
-            this.selectedAttributesBitArray.fromBase64UrlSafe(query_string['attributes']);
-            this.selectedAttributes = ko.observableArray(self.attributes().map(function(a) {
-                return a.id;
-            }).filter(function(h, i) {
-                return self.selectedAttributesBitArray.value(i);
-            }));
-            this.selectedAttributes.subscribe(function(changes) {
-                changes.forEach(function(change) {
-                    if (change.status === 'added' || change.status === 'deleted') {
-                        for (var i = 0; i < self.attributes().length; i++) {
-                            var attr = self.attributes()[i];
-                            if (attr.id == change.value) {
-                                self.selectedAttributesBitArray.value(i, change.status === 'added');
-                                break;
-                            }
-                        }
-                        updateQueryStringParam("attributes", self.selectedAttributesBitArray.toBase64UrlSafe());
-                    }
-                });
-            }, null, "arrayChange");
-
-            this.selectedHeroesBitArray = new BitArray(128);
-            this.selectedHeroesBitArray.fromBase64UrlSafe(query_string['heroes']);
-            this.selectedHeroes = ko.observableArray(
-                this.heroes.map(function (o) { return o.heroName; }).filter(function (h) { return self.selectedHeroesBitArray.value(getHeroID(h)); })
-            );
-            this.selectedHeroes.subscribe(function(changes) {
-                changes.forEach(function(change) {
-                    if (change.status === 'added' || change.status === 'deleted') {
-                        self.selectedHeroesBitArray.value(getHeroID(change.value), change.status === 'added');
-                        updateQueryStringParam("heroes", self.selectedHeroesBitArray.toBase64UrlSafe());
-
-                        self.remainingHeroes(shuffle(self.selectedHeroes().slice(0)));
-                    }
-                });
-            }, null, "arrayChange");
-
-            this.state = ko.observable(0);
-            this.currentAttribute = ko.observable(null);
-            this.currentHero = ko.observable(null);
-            this.text = ko.observable('<i>Tap to start</i>');
-            this.remainingHeroes = ko.observableArray(shuffle(self.selectedHeroes().slice(0)));
-            this.insertFront = ko.observable(false);
-            this.attributeOverride = {};
-            this.textToSpeech = ko.observable(query_string['tts'] == 1 ? true : false);
-            this.textToSpeech.subscribe(function (newValue) {
-                updateQueryStringParam("tts", newValue ? 1 : 0);
-            });
-            
-            this.minLevel = ko.observable(parseInt(query_string['minLevel'])).extend({ numeric: {defaultValue: 1} });
-            this.minLevel.subscribe(function (newValue) {
-                updateQueryStringParam("minLevel", parseInt(self.minLevel()));
-                if (parseInt(newValue) > parseInt(self.maxLevel())) {
-                    self.maxLevel(self.minLevel()); 
-                    updateQueryStringParam("maxLevel", parseInt(self.maxLevel()));
-                }
-            });
-            this.maxLevel = ko.observable(parseInt(query_string['maxLevel'])).extend({ numeric: {defaultValue: 1} });
-            this.maxLevel.subscribe(function (newValue) {
-                updateQueryStringParam("maxLevel", parseInt(self.maxLevel()));
-                if (parseInt(newValue) < parseInt(self.minLevel())) {
-                    self.minLevel(self.maxLevel());
-                    updateQueryStringParam("minLevel", parseInt(self.minLevel()));
-                }
-            });
-            
-            this.heroModel = new HeroCalc.HeroModel('abaddon');
-            
-            this.run = function () {
-                if (this.selectedHeroes().length === 0 || this.selectedAttributes().length === 0) {
-                    alert('No heroes or attributes selected.');
-                    return;
-                }
-
-                if (this.currentHero() == null) {
-                    if (!this.remainingHeroes().length) {
-                        this.remainingHeroes(shuffle(self.selectedHeroes().slice(0)));
-                    }
-                    this.currentHero(this.remainingHeroes.pop());
-                }
-
-                this.heroModel.heroId(this.currentHero());
-                
-                // when state is 0, we need to place currentHero, which represents the previous hero, back into the remainingHeroes list
-                // then we set a new currentHero popped from remainingHeroes
-                // a new currentAttribute and level is also set
-                if (this.state() === 0) {
-                    var position;
-                    var i = Math.floor(this.remainingHeroes().length * 4 / 5);
-                    
-                    // insertFront is set to true when the previous question was not answered or incorrect
-                    // this indicates that the hero in question should be placed back into the remainingHeroes list near the front so it will be asked again sooner
-                    // also set attributeOverride for the hero to currentAttribute so the same question will be asked next time the hero is picked.
-                    if (this.insertFront()) {
-                        position = getRandomInt(i + 1, Math.max(i + 1, this.remainingHeroes().length - 3));
-                        this.attributeOverride[this.currentHero()] = {
-                            attribute: this.currentAttribute(),
-                            level: this.heroModel.selectedHeroLevel()
-                        };
-                    }
-                    // when insertFront is false we want to put the hero into the back portion of the remainingHeroes list
-                    // the question was answered correctly so the hero should not appear again too soon.
-                    else {
-                        position = getRandomInt(0, i);
-                        delete this.attributeOverride[this.currentHero()];
-                    }
-                    
-                    console.log('insertFront', this.insertFront(), i, position, this.currentHero(), this.attributeOverride[this.currentHero()]);
-                    this.insertFront(false);
-                    this.remainingHeroes().splice(position, 0, this.currentHero());
-                    this.currentHero(this.remainingHeroes.pop());
-                    this.heroModel.heroId(this.currentHero());
-                    if (this.attributeOverride[this.currentHero()]) {
-                        this.currentAttribute(this.attributeOverride[this.currentHero()].attribute);
-                        this.heroModel.selectedHeroLevel(this.attributeOverride[this.currentHero()].level);
-                    } else {
-                        this.currentAttribute(self.selectedAttributes()[Math.floor(Math.random() * self.selectedAttributes().length)]);
-                        this.heroModel.selectedHeroLevel(getRandomInt(parseInt(self.minLevel()), parseInt(self.maxLevel())));
-                    }
-                    console.log(this.heroModel.heroData().displayname, this.currentAttribute());
-                    this.text('Level ' + this.heroModel.selectedHeroLevel() + ' ' + this.heroModel.heroData().displayname + '<br>' + attributeOptions.filter(function(a) {
-                        return a.id == self.currentAttribute();
-                    })[0].name);
-                }
-                // when state is 1, we show the answer
-                else if (this.state() === 1) {
-                    this.text(getAttributeValue(this.heroModel, this.currentAttribute()));
-                }
-
-                this.state((this.state() + 1) % 2);
-
-                if (this.textToSpeech()) {
-                    responsiveVoice.speak(this.text().toString().replace('<br>', ' '), 'US English Female', {"onend": this.loop});
-                }
-                else {
-                    this.loop();
-                }
-            };
-            
-            this.loop = function () {
-                if (self.autoPlay()) {
-                    clearTimeout(self.autoPlayInterval);
-                    self.autoPlayInterval = setTimeout(function () {
-                        self.run();
-                    }, self.autoPlayDelay());
-                }            
-            }
-
-
-            this.selectAllHeroes = function () {
-                self.selectedHeroes(self.heroes.map(function (o) { return o.heroName; }));
-            }
-            this.deselectAllHeroes = function () {
-                this.selectedHeroes.removeAll();
-            }
-            this.selectAllAttributes = function () {
-                self.selectedAttributes(self.attributes().map(function (o) { return o.id; }));
-            }
-            this.deselectAllAttributes = function () {
-                this.selectedAttributes.removeAll();
-            }
-
-            this.wrong = function () {
-                this.insertFront(true);
-                clearTimeout(this.autoPlayInterval);
-                this.run();
-            }
-
-            this.autoPlay = ko.observable(query_string['auto'] == 1 ? true : false);
-            this.autoPlay.subscribe(function (newValue) {
-                updateQueryStringParam("auto", newValue ? 1 : 0);
-            });
-            this.autoPlayDelay = ko.observable(parseInt(query_string['delay'])).extend({ numeric: {defaultValue: 3000} });
-            this.autoPlayDelay.subscribe(function (newValue) {
-                updateQueryStringParam("delay", newValue);
-            });
-            this.autoPlayInterval;
-            this.autoPlay.subscribe(function(newValue) {
-                if (!newValue) {
-                    clearInterval(self.autoPlayInterval);
-                }
-            });
-        }
-        var vm = new ViewModel();
-        ko.applyBindings(vm);
-    });
-});
-}).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"bit-array-js":2,"dota-hero-calculator-library":33}],2:[function(require,module,exports){
-(function (global){
 var btoa = (typeof window !== "undefined" ? window['btoa'] : typeof global !== "undefined" ? global['btoa'] : null);
 var atob = (typeof window !== "undefined" ? window['atob'] : typeof global !== "undefined" ? global['atob'] : null);
 
@@ -595,7 +183,7 @@ var BitArray = (function() {
 
 module.exports = BitArray;
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{}],3:[function(require,module,exports){
+},{}],2:[function(require,module,exports){
 'use strict';
 var ko = require('./herocalc_knockout');
 var abilityData = require("./herocalc_abilitydata");
@@ -2984,7 +2572,7 @@ AbilityModel.prototype.getAbilityAttributeTooltip = function (attributes, attrib
 }
 
 module.exports = AbilityModel;
-},{"./herocalc_abilitydata":20,"./herocalc_knockout":21}],4:[function(require,module,exports){
+},{"./herocalc_abilitydata":19,"./herocalc_knockout":20}],3:[function(require,module,exports){
 'use strict';
 var ko = require('./herocalc_knockout');
 
@@ -3192,7 +2780,7 @@ BuffViewModel.prototype = Object.create(AbilityModel.prototype);
 BuffViewModel.prototype.constructor = BuffViewModel;
 
 module.exports = BuffViewModel;
-},{"./AbilityModel":3,"./buffs/buffOptionsArray":6,"./buffs/debuffOptionsArray":7,"./herocalc_knockout":21,"./inventory/InventoryViewModel":24,"./util/findWhere":35}],5:[function(require,module,exports){
+},{"./AbilityModel":2,"./buffs/buffOptionsArray":5,"./buffs/debuffOptionsArray":6,"./herocalc_knockout":20,"./inventory/InventoryViewModel":23,"./util/findWhere":34}],4:[function(require,module,exports){
 var findWhere = require("../util/findWhere");
 var heroData = require("../data/main").heroData;
 var unitData = require("../data/main").unitData;
@@ -3216,7 +2804,7 @@ var BuffModel = function (hero, ability) {
 };
 
 module.exports = BuffModel;
-},{"../data/main":8,"../util/findWhere":35}],6:[function(require,module,exports){
+},{"../data/main":7,"../util/findWhere":34}],5:[function(require,module,exports){
 var BuffModel = require("./BuffModel");
 
 var buffOptionsArray = {};
@@ -3269,7 +2857,7 @@ var init = function () {
 buffOptionsArray.init = init;
 
 module.exports = buffOptionsArray;
-},{"./BuffModel":5}],7:[function(require,module,exports){
+},{"./BuffModel":4}],6:[function(require,module,exports){
 var BuffModel = require("./BuffModel");
 
 var debuffOptionsArray = {};
@@ -3374,7 +2962,7 @@ var init = function () {
 debuffOptionsArray.init = init;
 
 module.exports = debuffOptionsArray;
-},{"./BuffModel":5}],8:[function(require,module,exports){
+},{"./BuffModel":4}],7:[function(require,module,exports){
 var HeroCalcData = {
     heroData: {},
     itemData: {},
@@ -3464,7 +3052,7 @@ var init = function (HERODATA_PATH, ITEMDATA_PATH, UNITDATA_PATH, callback) {
 HeroCalcData.init = init;
 
 module.exports = HeroCalcData;
-},{"../util/getJSON":36}],9:[function(require,module,exports){
+},{"../util/getJSON":35}],8:[function(require,module,exports){
 'use strict';
 var HeroModel = require("./HeroModel");
 
@@ -3478,7 +3066,7 @@ CloneModel.prototype = Object.create(HeroModel.prototype);
 CloneModel.prototype.constructor = CloneModel;
 
 module.exports = CloneModel;
-},{"./HeroModel":12}],10:[function(require,module,exports){
+},{"./HeroModel":11}],9:[function(require,module,exports){
 var DamageTypeColor = {
     'physical': '#979aa2',
     'pure': 'goldenrod',
@@ -3487,7 +3075,7 @@ var DamageTypeColor = {
 }
 
 module.exports = DamageTypeColor;
-},{}],11:[function(require,module,exports){
+},{}],10:[function(require,module,exports){
 'use strict';
 var ko = require('../herocalc_knockout');
     
@@ -4151,7 +3739,7 @@ var HeroDamageMixin = function (self) {
 }
 
 module.exports = HeroDamageMixin;
-},{"../data/main":8,"../herocalc_knockout":21,"../util/extend":34,"./DamageTypeColor":10}],12:[function(require,module,exports){
+},{"../data/main":7,"../herocalc_knockout":20,"../util/extend":33,"./DamageTypeColor":9}],11:[function(require,module,exports){
 'use strict';
 var ko = require('../herocalc_knockout');
 
@@ -4655,7 +4243,7 @@ HeroModel.prototype.getAbilityLevelMax = function (data) {
 };
 
 module.exports = HeroModel;
-},{"../AbilityModel":3,"../BuffViewModel":4,"../data/main":8,"../herocalc_knockout":21,"../inventory/InventoryViewModel":24,"./HeroDamageMixin":11,"./diffProperties":16,"./nextLevelExp":18,"./totalExp":19}],13:[function(require,module,exports){
+},{"../AbilityModel":2,"../BuffViewModel":3,"../data/main":7,"../herocalc_knockout":20,"../inventory/InventoryViewModel":23,"./HeroDamageMixin":10,"./diffProperties":15,"./nextLevelExp":17,"./totalExp":18}],12:[function(require,module,exports){
 var HeroOption = function (name, displayname, hero) {
     this.heroName = name;
     this.heroDisplayName = displayname;
@@ -4663,7 +4251,7 @@ var HeroOption = function (name, displayname, hero) {
 };
 
 module.exports = HeroOption;
-},{}],14:[function(require,module,exports){
+},{}],13:[function(require,module,exports){
 'use strict';
 var HeroModel = require("./HeroModel");
 var heroData = require("../data/main").heroData;
@@ -4806,7 +4394,7 @@ IllusionModel.prototype = Object.create(HeroModel.prototype);
 IllusionModel.prototype.constructor = IllusionModel;
 
 module.exports = IllusionModel;
-},{"../data/main":8,"../illusion/illusionData":22,"../util/findWhere":35,"./HeroModel":12}],15:[function(require,module,exports){
+},{"../data/main":7,"../illusion/illusionData":21,"../util/findWhere":34,"./HeroModel":11}],14:[function(require,module,exports){
 'use strict';
 var ko = require('../herocalc_knockout');
 
@@ -5105,7 +4693,7 @@ UnitModel.prototype = Object.create(HeroModel.prototype);
 UnitModel.prototype.constructor = UnitModel;
 
 module.exports = UnitModel;
-},{"../AbilityModel":3,"../data/main":8,"../herocalc_knockout":21,"./HeroModel":12}],16:[function(require,module,exports){
+},{"../AbilityModel":2,"../data/main":7,"../herocalc_knockout":20,"./HeroModel":11}],15:[function(require,module,exports){
 var diffProperties = [
     'totalAgi',
     'totalInt',
@@ -5142,7 +4730,7 @@ var diffProperties = [
 ];
 
 module.exports = diffProperties;
-},{}],17:[function(require,module,exports){
+},{}],16:[function(require,module,exports){
 var heroData = require("../data/main").heroData;
 var HeroOption = require("./HeroOption");
 
@@ -5159,15 +4747,15 @@ var init = function () {
 heroOptionsArray.init = init;
 
 module.exports = heroOptionsArray;
-},{"../data/main":8,"./HeroOption":13}],18:[function(require,module,exports){
+},{"../data/main":7,"./HeroOption":12}],17:[function(require,module,exports){
 var nextLevelExp = [200, 300, 400, 500, 600, 600, 800, 1000, 1000, 600, 2200, 800, 1400, 1500, 1600, 1700, 1800, 1900, 2000, 2100, 2200, 2300, 2400, 2500, '&mdash;'];
 
 module.exports = nextLevelExp;
-},{}],19:[function(require,module,exports){
+},{}],18:[function(require,module,exports){
 var totalExp = [0, 200, 500, 900, 1400, 2000, 2600, 3400, 4400, 5400, 6000, 8200, 9000, 10400, 11900, 13500, 15200, 17000, 18900, 20900, 23000, 25200, 27500, 29900, 32400];
 
 module.exports = totalExp;
-},{}],20:[function(require,module,exports){
+},{}],19:[function(require,module,exports){
 var abilityData = {
     'alchemist_acid_spray': [
         {
@@ -8728,7 +8316,7 @@ var abilityData = {
 }
 
 module.exports = abilityData;
-},{}],21:[function(require,module,exports){
+},{}],20:[function(require,module,exports){
 (function (global){
 'use strict';
 var ko = (typeof window !== "undefined" ? window['ko'] : typeof global !== "undefined" ? global['ko'] : null);
@@ -8767,7 +8355,7 @@ ko.extenders.numeric = function(target, precision) {
 
 module.exports = ko;
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"../lib/knockout.mapping":41,"../lib/knockout.wrap":42}],22:[function(require,module,exports){
+},{"../lib/knockout.mapping":40,"../lib/knockout.wrap":41}],21:[function(require,module,exports){
 var illusionData = {
     chaos_knight_phantasm: {
         hero: 'chaos_knight',
@@ -8871,7 +8459,7 @@ var illusionData = {
 }
 
 module.exports = illusionData;
-},{}],23:[function(require,module,exports){
+},{}],22:[function(require,module,exports){
 var stackableItems = require("./stackableItems");
 var levelItems = require("./levelItems");
 var itemsWithActive = require("./itemsWithActive");
@@ -9047,7 +8635,7 @@ BasicInventoryViewModel.prototype.getItemAttributeValue = function (attributes, 
 }
 
 module.exports = BasicInventoryViewModel;
-},{"./itemsWithActive":29,"./levelItems":30,"./stackableItems":31}],24:[function(require,module,exports){
+},{"./itemsWithActive":28,"./levelItems":29,"./stackableItems":30}],23:[function(require,module,exports){
 'use strict';
 var ko = require('../herocalc_knockout');
 
@@ -10287,7 +9875,7 @@ InventoryViewModel.prototype = Object.create(BasicInventoryViewModel.prototype);
 InventoryViewModel.prototype.constructor = InventoryViewModel;
 
 module.exports = InventoryViewModel;
-},{"../data/main":8,"../herocalc_knockout":21,"./BasicInventoryViewModel":23,"./itemBuffOptions":26,"./itemDebuffOptions":27,"./itemOptionsArray":28,"./levelItems":30,"./stackableItems":31}],25:[function(require,module,exports){
+},{"../data/main":7,"../herocalc_knockout":20,"./BasicInventoryViewModel":22,"./itemBuffOptions":25,"./itemDebuffOptions":26,"./itemOptionsArray":27,"./levelItems":29,"./stackableItems":30}],24:[function(require,module,exports){
 var itemData = require("../data/main").itemData;
 
 var ItemInput = function (value, name, debuff) {
@@ -10312,7 +9900,7 @@ var ItemInput = function (value, name, debuff) {
 };
 
 module.exports = ItemInput;
-},{"../data/main":8}],26:[function(require,module,exports){
+},{"../data/main":7}],25:[function(require,module,exports){
 var ItemInput = require("./ItemInput");
 var itemData = require("../data/main").itemData;
 var itemBuffs = ['assault', 'ancient_janggo', 'headdress', 'mekansm', 'pipe', 'ring_of_aquila', 'vladmir', 'ring_of_basilius', 'buckler', 'solar_crest'];
@@ -10328,7 +9916,7 @@ var init = function () {
 itemBuffOptions.init = init;
 
 module.exports = itemBuffOptions;
-},{"../data/main":8,"./ItemInput":25}],27:[function(require,module,exports){
+},{"../data/main":7,"./ItemInput":24}],26:[function(require,module,exports){
 var ItemInput = require("./ItemInput");
 var itemData = require("../data/main").itemData;
 var itemDebuffs = [
@@ -10355,7 +9943,7 @@ var init = function () {
 itemDebuffOptions.init = init;
 
 module.exports = itemDebuffOptions;
-},{"../data/main":8,"./ItemInput":25}],28:[function(require,module,exports){
+},{"../data/main":7,"./ItemInput":24}],27:[function(require,module,exports){
 var validItems = require("./validItems");
 var ItemInput = require("./ItemInput");
 var itemData = require("../data/main").itemData;
@@ -10373,15 +9961,15 @@ var init = function () {
 itemOptionsArray.init = init;
 
 module.exports = itemOptionsArray;
-},{"../data/main":8,"./ItemInput":25,"./validItems":32}],29:[function(require,module,exports){
+},{"../data/main":7,"./ItemInput":24,"./validItems":31}],28:[function(require,module,exports){
 module.exports = ['solar_crest', 'heart','smoke_of_deceit','dust','ghost','tranquil_boots','phase_boots','power_treads','buckler','medallion_of_courage','ancient_janggo','mekansm','pipe','veil_of_discord','rod_of_atos','orchid','sheepstick','armlet','invis_sword','ethereal_blade','shivas_guard','manta','mask_of_madness','diffusal_blade','mjollnir','satanic','ring_of_basilius','ring_of_aquila', 'butterfly', 'moon_shard', 'silver_edge','bloodthorn','hurricane_pike'];
-},{}],30:[function(require,module,exports){
+},{}],29:[function(require,module,exports){
 module.exports = ['necronomicon','dagon','diffusal_blade','travel_boots'];
-},{}],31:[function(require,module,exports){
+},{}],30:[function(require,module,exports){
 module.exports = ['clarity','flask','dust','ward_observer','ward_sentry','tango','tpscroll','smoke_of_deceit'];
-},{}],32:[function(require,module,exports){
+},{}],31:[function(require,module,exports){
 module.exports = ["abyssal_blade","ultimate_scepter","courier","arcane_boots","armlet","assault","boots_of_elves","bfury","belt_of_strength","black_king_bar","blade_mail","blade_of_alacrity","blades_of_attack","blink","bloodstone","boots","travel_boots","bottle","bracer","broadsword","buckler","butterfly","chainmail","circlet","clarity","claymore","cloak","lesser_crit","greater_crit","dagon","demon_edge","desolator","diffusal_blade","rapier","ancient_janggo","dust","eagle","energy_booster","ethereal_blade","cyclone","skadi","flying_courier","force_staff","gauntlets","gem","ghost","gloves","hand_of_midas","headdress","flask","heart","heavens_halberd","helm_of_iron_will","helm_of_the_dominator","hood_of_defiance","hyperstone","branches","javelin","sphere","maelstrom","magic_stick","magic_wand","manta","mantle","mask_of_madness","medallion_of_courage","mekansm","mithril_hammer","mjollnir","monkey_king_bar","lifesteal","mystic_staff","necronomicon","null_talisman","oblivion_staff","ward_observer","ogre_axe","orb_of_venom","orchid","pers","phase_boots","pipe","platemail","point_booster","poor_mans_shield","power_treads","quarterstaff","quelling_blade","radiance","reaver","refresher","ring_of_aquila","ring_of_basilius","ring_of_health","ring_of_protection","ring_of_regen","robe","rod_of_atos","relic","sobi_mask","sange","sange_and_yasha","satanic","sheepstick","ward_sentry","shadow_amulet","invis_sword","shivas_guard","basher","slippers","smoke_of_deceit","soul_booster","soul_ring","staff_of_wizardry","stout_shield","talisman_of_evasion","tango","tpscroll","tranquil_boots","ultimate_orb","urn_of_shadows","vanguard","veil_of_discord","vitality_booster","vladmir","void_stone","wraith_band","yasha","crimson_guard","enchanted_mango","lotus_orb","glimmer_cape","guardian_greaves","moon_shard","silver_edge","solar_crest","octarine_core","aether_lens","faerie_fire","iron_talon","dragon_lance","echo_sabre","infused_raindrop","blight_stone","wind_lace","tome_of_knowledge","bloodthorn","hurricane_pike"];
-},{}],33:[function(require,module,exports){
+},{}],32:[function(require,module,exports){
 'use strict';
 
 var core = {};
@@ -10408,7 +9996,7 @@ core.init = function (HERODATA_PATH, ITEMDATA_PATH, UNITDATA_PATH, callback) {
 }
 
 module.exports = core;
-},{"./AbilityModel":3,"./BuffViewModel":4,"./buffs/buffOptionsArray":6,"./buffs/debuffOptionsArray":7,"./data/main":8,"./hero/CloneModel":9,"./hero/HeroModel":12,"./hero/IllusionModel":14,"./hero/UnitModel":15,"./hero/heroOptionsArray":17,"./inventory/InventoryViewModel":24,"./inventory/itemBuffOptions":26,"./inventory/itemDebuffOptions":27,"./inventory/itemOptionsArray":28,"./util/main":37}],34:[function(require,module,exports){
+},{"./AbilityModel":2,"./BuffViewModel":3,"./buffs/buffOptionsArray":5,"./buffs/debuffOptionsArray":6,"./data/main":7,"./hero/CloneModel":8,"./hero/HeroModel":11,"./hero/IllusionModel":13,"./hero/UnitModel":14,"./hero/heroOptionsArray":16,"./inventory/InventoryViewModel":23,"./inventory/itemBuffOptions":25,"./inventory/itemDebuffOptions":26,"./inventory/itemOptionsArray":27,"./util/main":36}],33:[function(require,module,exports){
 var extend = function (out) {
     out = out || {};
 
@@ -10432,7 +10020,7 @@ var extend = function (out) {
 };
 
 module.exports = extend;
-},{}],35:[function(require,module,exports){
+},{}],34:[function(require,module,exports){
 var findWhere = function (arr, obj) {
     arrLoop: for (var i = 0; i < arr.length; i++) {
         objLoop: for (var key in obj) {
@@ -10445,7 +10033,7 @@ var findWhere = function (arr, obj) {
 }
 
 module.exports = findWhere;
-},{}],36:[function(require,module,exports){
+},{}],35:[function(require,module,exports){
 "use strict";
 
 var getJSON = function (url, successCallback, errorCallback) {
@@ -10472,7 +10060,7 @@ var getJSON = function (url, successCallback, errorCallback) {
 }
 
 module.exports = getJSON;
-},{}],37:[function(require,module,exports){
+},{}],36:[function(require,module,exports){
 'use strict';
 
 var util = {};
@@ -10484,7 +10072,7 @@ util.uniqueId = require("./uniqueId");
 util.uniques = require("./uniques");
 
 module.exports = util;
-},{"./extend":34,"./findWhere":35,"./getJSON":36,"./union":38,"./uniqueId":39,"./uniques":40}],38:[function(require,module,exports){
+},{"./extend":33,"./findWhere":34,"./getJSON":35,"./union":37,"./uniqueId":38,"./uniques":39}],37:[function(require,module,exports){
 "use strict";
 var uniques = require("./uniques");
 
@@ -10494,7 +10082,7 @@ var union = function (a, b) {
 }
 
 module.exports = union;
-},{"./uniques":40}],39:[function(require,module,exports){
+},{"./uniques":39}],38:[function(require,module,exports){
 "use strict";
 
 var idCounter = 0;
@@ -10504,7 +10092,7 @@ var uniqueId = function (prefix) {
 };
 
 module.exports = uniqueId;
-},{}],40:[function(require,module,exports){
+},{}],39:[function(require,module,exports){
 "use strict";
 var uniques = function (arr) {
     var a = [];
@@ -10515,7 +10103,7 @@ var uniques = function (arr) {
 }
 
 module.exports = uniques;
-},{}],41:[function(require,module,exports){
+},{}],40:[function(require,module,exports){
 (function (global){
 (function (factory) {
 	// Module systems magic dance.
@@ -11324,7 +10912,7 @@ module.exports = uniques;
 	};
 }));
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{}],42:[function(require,module,exports){
+},{}],41:[function(require,module,exports){
 (function (global){
 // Knockout Fast Mapping v0.1
 // License: MIT (http://www.opensource.org/licenses/mit-license.php)
@@ -11536,4 +11124,541 @@ module.exports = uniques;
     }
 }));
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{}]},{},[1]);
+},{}],42:[function(require,module,exports){
+(function (global){
+var ko = (typeof window !== "undefined" ? window['ko'] : typeof global !== "undefined" ? global['ko'] : null);
+
+// Knockout checked binding doesn't work with Bootstrap checkboxes
+ko.bindingHandlers.checkbox = {
+    init: function (element, valueAccessor) {
+        var $element = $(element),
+            handler = function (e) {
+            // we need to handle change event after bootsrap will handle its event
+            // to prevent incorrect changing of checkbox state
+            setTimeout(function () {
+                var $checkbox = $(e.target),
+                    value = valueAccessor(),
+                    data = $checkbox.val(),
+                    isChecked = $checkbox.parent().hasClass('active');
+                
+                if(!$checkbox.prop('disbled')) {
+                    if (ko.unwrap(value) instanceof Array) {
+                        var index = ko.utils.arrayIndexOf(ko.unwrap(value), (data));
+
+                        if (isChecked && (index === -1)) {
+                            value.push(data);
+                        } else if (!isChecked && (index !== -1)) {
+                            value.splice(index, 1);
+                        }
+                    } else {
+                        value(isChecked);
+                    }
+                }
+            }, 0);
+        };
+
+        if ($element.attr('data-toggle') === 'buttons' && $element.find('input:checkbox').length) {
+
+            if (!(ko.unwrap(valueAccessor()) instanceof Array)) {
+                throw new Error('checkbox binding should be used only with array or observableArray values in this case');
+            }
+
+            $element.on('change', 'input:checkbox', handler);
+        } else if ($element.attr('type') === 'checkbox') {
+
+            if (!ko.isObservable(valueAccessor())) {
+                throw new Error('checkbox binding should be used only with observable values in this case');
+            }
+
+            $element.on('change', handler);
+        } else {
+            throw new Error('checkbox binding should be used only with bootstrap checkboxes');
+        }
+    },
+
+    update: function (element, valueAccessor) {
+        var $element = $(element),
+            value = ko.unwrap(valueAccessor()),
+            isChecked;
+
+        if (value instanceof Array) {
+            if ($element.attr('data-toggle') === 'buttons') {
+                $element.find('input:checkbox').each(function (index, el) {
+                    isChecked = ko.utils.arrayIndexOf(value, el.value) !== -1;
+                    $(el).parent().toggleClass('active', isChecked);
+                    el.checked = isChecked;
+                });
+            } else {
+                isChecked = ko.utils.arrayIndexOf(value, $element.val()) !== -1;
+                $element.toggleClass('active', isChecked);
+                $element.find('input').prop('checked', isChecked);
+            }
+        } else {
+            isChecked = !!value;
+            $element.prop('checked', isChecked);
+            $element.parent().toggleClass('active', isChecked);
+        }
+    }
+};
+}).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
+},{}],43:[function(require,module,exports){
+(function (global){
+var ko = (typeof window !== "undefined" ? window['ko'] : typeof global !== "undefined" ? global['ko'] : null);
+
+ko.extenders.numeric = function(target, opts) {
+    //create a writable computed observable to intercept writes to our observable
+    var result = ko.pureComputed({
+        read: target,  //always return the original observables value
+        write: function(newValue) {
+            var current = target(),
+                roundingMultiplier = Math.pow(10, (opts === Object(opts) ? opts.precision : opts) || 0),
+                newValueAsNum = isNaN(newValue) ? (opts.defaultValue || 0) : +newValue,
+                valueToWrite = Math.round(newValueAsNum * roundingMultiplier) / roundingMultiplier;
+ 
+            //only write if it changed
+            if (valueToWrite !== current) {
+                target(valueToWrite);
+            } else {
+                //if the rounded value is the same, but a different value was written, force a notification for the current field
+                if (newValue !== current) {
+                    target.notifySubscribers(valueToWrite);
+                }
+            }
+        }
+    }).extend({ notify: 'always' });
+ 
+    //initialize with current value to make sure it is rounded appropriately
+    result(target());
+ 
+    //return the new computed observable
+    return result;
+};
+}).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
+},{}],44:[function(require,module,exports){
+(function (global){
+var $ = (typeof window !== "undefined" ? window['$'] : typeof global !== "undefined" ? global['$'] : null);
+var ko = (typeof window !== "undefined" ? window['ko'] : typeof global !== "undefined" ? global['ko'] : null);
+var HeroCalc = require('dota-hero-calculator-library');
+require('./ko.extenders.numeric');
+require('./ko.bindingHandlers.checkbox');
+var BitArray = require('bit-array-js');
+$(function () {
+
+    HeroCalc.init("/media/js/herodata.json","/media/js/itemdata.json","/media/js/unitdata.json", function () {
+        var attributeOptions = [
+            {id: "totalArmorPhysical", name: "Armor"},
+            {id: "totalArmorPhysicalReduction", name: "Physical Damage Reduction"},
+            {id: "totalMagicResistance", name: "Magic Resistance"},
+            {id: "totalattackrange", name: "Attack Range"},
+            {id: "totalAgi", name: "Agility"},
+            {id: "totalInt", name: "Intelligence"},
+            {id: "totalStr", name: "Strength"},
+            {id: "health", name: "HP"},
+            {id: "mana", name: "Mana"},
+            {id: "healthregen", name: "HP Regen"},
+            {id: "manaregen", name: "Mana Regen"},
+            {id: "totalMovementSpeed", name: "Movement Speed"},
+            {id: "totalTurnRate", name: "Turn Rate"},
+            {id: "baseDamageMin", name: "Attack Damage Min"},
+            {id: "baseDamageMax", name: "Attack Damage Max"},
+            {id: "baseDamageAvg", name: "Attack Damage Avg"},
+            {id: "ehpPhysical", name: "EHP"},
+            {id: "ehpMagical", name: "Magical EHP"},
+            {id: "primaryAttribute", name: "Primary Attr"},
+            {id: "projectilespeed", name: "Missile Speed"},
+            {id: "attributeagilitygain", name: "Agi Gain"},
+            {id: "attributestrengthgain", name: "Str Gain"},
+            {id: "attributeintelligencegain", name: "Int Gain"},
+            {id: "attributebaseagility", name: "Base Agi"},
+            {id: "attributebaseintelligence", name: "Base Int"},
+            {id: "attributebasestrength", name: "Base Str"},
+            {id: "visionrangeday", name: "Day Vision Range"},
+            {id: "visionrangenight", name: "Night Vision Range"},
+        ];
+        
+        var query_string = (function(a) {
+            if (a == "") return {};
+            var b = {};
+            for (var i = 0; i < a.length; ++i)
+            {
+                var p=a[i].split('=', 2);
+                if (p.length == 1)
+                    b[p[0]] = "";
+                else
+                    b[p[0]] = decodeURIComponent(p[1].replace(/\+/g, " "));
+            }
+            return b;
+        })(window.location.search.substr(1).split('&'));
+        
+        // Explicitly save/update a url parameter using HTML5's replaceState().
+        function updateQueryStringParam(key, value) {
+            baseUrl = [location.protocol, '//', location.host, location.pathname].join('');
+            urlQueryString = document.location.search;
+            var newParam = key + '=' + value,
+                params = '?' + newParam;
+
+            // If the "search" string exists, then build params from it
+            if (urlQueryString) {
+                keyRegex = new RegExp('([\?&])' + key + '[^&]*');
+                // If param exists already, update it
+                if (urlQueryString.match(keyRegex) !== null) {
+                    params = urlQueryString.replace(keyRegex, "$1" + newParam);
+                } else { // Otherwise, add it to end of query string
+                    params = urlQueryString + '&' + newParam;
+                }
+            }
+            window.history.replaceState({}, "", baseUrl + params);
+        }
+        
+        function getRandomInt(min, max) {
+            return Math.floor(Math.random() * (max - min + 1)) + min;
+        }
+        
+        function shuffle(array) {
+            var counter = array.length,
+                temp, index;
+
+            // While there are elements in the array
+            while (counter > 0) {
+                // Pick a random index
+                index = Math.floor(Math.random() * counter);
+
+                // Decrease counter by 1
+                counter--;
+
+                // And swap the last element with it
+                temp = array[counter];
+                array[counter] = array[index];
+                array[index] = temp;
+            }
+
+            return array;
+        };
+        
+        function getAttributeValue(heroModel, attribute) {
+            //console.log('getAttributeValue', heroModel, attribute);
+            if (heroModel.hasOwnProperty(attribute)) {
+                return heroModel[attribute]();
+            }
+            else {
+                return heroModel.heroData()[attribute];
+            }
+        }
+        
+        var attributes = attributeOptions.map(function (a) { return a.id; });
+        
+        function getHeroID(hero) {
+            return HeroCalc.Data.heroData['npc_dota_hero_' + hero].HeroID;
+        }
+
+        function ViewModel() {
+            var self = this;
+            this.attributes = ko.observableArray(attributeOptions);
+            this.heroes = HeroCalc.HeroOptions;
+
+            this.selectedAttributesBitArray = new BitArray(32);
+            this.selectedAttributesBitArray.fromBase64UrlSafe(query_string['attributes']);
+            this.selectedAttributes = ko.observableArray(self.attributes().map(function(a) {
+                return a.id;
+            }).filter(function(h, i) {
+                return self.selectedAttributesBitArray.value(i);
+            }));
+            this.selectedAttributes.subscribe(function(changes) {
+                changes.forEach(function(change) {
+                    if (change.status === 'added' || change.status === 'deleted') {
+                        for (var i = 0; i < self.attributes().length; i++) {
+                            var attr = self.attributes()[i];
+                            if (attr.id == change.value) {
+                                self.selectedAttributesBitArray.value(i, change.status === 'added');
+                                break;
+                            }
+                        }
+                        updateQueryStringParam("attributes", self.selectedAttributesBitArray.toBase64UrlSafe());
+                    }
+                });
+            }, null, "arrayChange");
+
+            this.selectedHeroesBitArray = new BitArray(128);
+            this.selectedHeroesBitArray.fromBase64UrlSafe(query_string['heroes']);
+            this.selectedHeroes = ko.observableArray(
+                this.heroes.map(function (o) { return o.heroName; }).filter(function (h) { return self.selectedHeroesBitArray.value(getHeroID(h)); })
+            );
+            this.selectedHeroes.subscribe(function(changes) {
+                changes.forEach(function(change) {
+                    if (change.status === 'added' || change.status === 'deleted') {
+                        self.selectedHeroesBitArray.value(getHeroID(change.value), change.status === 'added');
+                        updateQueryStringParam("heroes", self.selectedHeroesBitArray.toBase64UrlSafe());
+
+                        self.remainingHeroes(shuffle(self.selectedHeroes().slice(0)));
+                    }
+                });
+            }, null, "arrayChange");
+
+            this.state = ko.observable(0);
+            this.currentAttribute = ko.observable(null);
+            this.currentHero = ko.observable(null);
+            this.text = ko.observable('<i>Tap to start</i>');
+            this.remainingHeroes = ko.observableArray(shuffle(self.selectedHeroes().slice(0)));
+            this.insertFront = ko.observable(false);
+            this.questionStore = {};
+            this.textToSpeech = ko.observable(query_string['tts'] == 1 ? true : false);
+            this.textToSpeech.subscribe(function (newValue) {
+                updateQueryStringParam("tts", newValue ? 1 : 0);
+            });
+            
+            this.minLevel = ko.observable(parseInt(query_string['minLevel'])).extend({ numeric: {defaultValue: 1} });
+            this.minLevel.subscribe(function (newValue) {
+                updateQueryStringParam("minLevel", parseInt(self.minLevel()));
+                if (parseInt(newValue) > parseInt(self.maxLevel())) {
+                    self.maxLevel(self.minLevel()); 
+                    updateQueryStringParam("maxLevel", parseInt(self.maxLevel()));
+                }
+            });
+            this.maxLevel = ko.observable(parseInt(query_string['maxLevel'])).extend({ numeric: {defaultValue: 1} });
+            this.maxLevel.subscribe(function (newValue) {
+                updateQueryStringParam("maxLevel", parseInt(self.maxLevel()));
+                if (parseInt(newValue) < parseInt(self.minLevel())) {
+                    self.minLevel(self.maxLevel());
+                    updateQueryStringParam("minLevel", parseInt(self.minLevel()));
+                }
+            });
+            
+            this.heroModel = new HeroCalc.HeroModel('abaddon');
+            
+            this.questionGenerator = {};
+            this.questionGenerator.attributes = function (heroModel, hero, attributes, minLevel, maxLevel, abilityQuestionTypes) {
+                var attribute = attributes[Math.floor(Math.random() * attributes.length)];
+                var level = getRandomInt(minLevel, maxLevel);
+                heroModel.heroId(hero);
+                heroModel.selectedHeroLevel(level);
+                var question = 'Level ' + level + ' ' + self.heroModel.heroData().displayname + '<br>' + attributeOptions.filter(function(a) {
+                        return a.id == attribute;
+                    })[0].name;
+                var answer = getAttributeValue(heroModel, attribute);
+                
+                return { question: question, answer: answer };
+            }
+            
+            this.questionGenerator.abilities = function (heroModel, hero, attributes, minLevel, maxLevel, abilityQuestionTypes) {
+                var abilityQuestionType = abilityQuestionTypes[Math.floor(Math.random() * abilityQuestionTypes.length)];
+                heroModel.heroId(hero);
+                var ability;
+                while (!ability) {
+                    ability = heroModel.ability().abilities()[Math.floor(Math.random() * heroModel.ability().abilities().length)];
+                    
+                    if (ability.displayname === 'Attribute Bonus' || ability.displayname === '' || ability.displayname === 'Empty' ||
+                        !ability.hasOwnProperty(abilityQuestionType) || ability[abilityQuestionType].length === 0) {
+                        ability = null;
+                        continue;
+                    }
+                    switch (abilityQuestionType) {
+                        case 'attributes':
+                            var abilityAttributes = ability.attributes.filter(function(a) {
+                                return a.hasOwnProperty('tooltip');
+                            });
+                            if (abilityAttributes.length === 0) {
+                                ability = null;
+                                continue;
+                            }
+                            var abilityAttribute = abilityAttributes[Math.floor(Math.random() * abilityAttributes.length)];
+                            //console.log(abilityAttribute);
+                            var values = abilityAttribute.value;
+                            var tooltip = abilityAttribute.tooltip;
+                        break;
+                        case 'cooldown':
+                            var tooltip = 'Cooldown';
+                            var values = ability[abilityQuestionType];
+                        break;
+                        case 'manacost':
+                            var tooltip = 'Mana Cost';
+                            var values = ability[abilityQuestionType];
+                        break;
+                    }
+                }
+                
+                var maxAbilityLevel = heroModel.getAbilityLevelMax(ability);
+                var abilityLevel = getRandomInt(1, maxAbilityLevel);
+                if (abilityLevel > values.length) {
+                    var value = values[0];
+                }
+                else {
+                    var value = values[Math.max(0, abilityLevel - 1)];
+                }
+                
+                var question = self.heroModel.heroData().displayname + '<br>' + ability.displayname + '<br>Level ' + abilityLevel + ' ' + tooltip;
+                //console.log(question, values, value);
+                return { question: question, answer: value };
+            }
+            //this.questionGenerator.abilities(this.heroModel, 'abaddon', [], 1, 1);
+            
+            this.createQuestion = function () {
+                var questionType = self.questionTypes()[Math.floor(Math.random() * self.questionTypes().length)];
+                //console.log('questionType', questionType, self.questionTypes());
+                return this.questionGenerator[questionType](self.heroModel, self.currentHero(), self.selectedAttributes(), parseInt(self.minLevel()), parseInt(self.maxLevel()), self.abilityQuestionTypes());
+            }
+            
+            this.getQuestion = function () {
+                if (!self.currentAttribute()) return;
+                //console.log(self.heroModel.selectedHeroLevel(), self.heroModel.heroData().displayname, self.currentAttribute());
+                return 'Level ' + self.heroModel.selectedHeroLevel() + ' ' + self.heroModel.heroData().displayname + '<br>' + attributeOptions.filter(function(a) {
+                        return a.id == self.currentAttribute();
+                    })[0].name;
+            }
+            
+            this.question;
+            
+            this.run = function () {
+                if (this.selectedHeroes().length === 0 || this.selectedAttributes().length === 0) {
+                    alert('No heroes or attributes selected.');
+                    return;
+                }
+
+                if (this.currentHero() == null) {
+                    if (!this.remainingHeroes().length) {
+                        this.remainingHeroes(shuffle(self.selectedHeroes().slice(0)));
+                    }
+                    this.currentHero(this.remainingHeroes.pop());
+                }
+
+                this.heroModel.heroId(this.currentHero());
+                
+                // when state is 0, we need to place currentHero, which represents the previous hero, back into the remainingHeroes list
+                // then we set a new currentHero popped from remainingHeroes
+                // a new currentAttribute and level is also set
+                if (this.state() === 0) {
+                    var position;
+                    var i = Math.floor(this.remainingHeroes().length * 4 / 5);
+                    
+                    // insertFront is set to true when the previous question was not answered or incorrect
+                    // this indicates that the hero in question should be placed back into the remainingHeroes list near the front so it will be asked again sooner
+                    // also store question in questionStore for the hero so the same question will be asked next time the hero is picked.
+                    if (this.insertFront()) {
+                        position = getRandomInt(i + 1, Math.max(i + 1, this.remainingHeroes().length - 3));
+                        this.questionStore[this.currentHero()] = this.question;
+                    }
+                    // when insertFront is false we want to put the hero into the back portion of the remainingHeroes list
+                    // the question was answered correctly so the hero should not appear again too soon.
+                    else {
+                        position = getRandomInt(0, i);
+                        delete this.questionStore[this.currentHero()];
+                    }
+                    
+                    //console.log('insertFront', this.insertFront(), i, position, this.currentHero(), this.questionStore[this.currentHero()]);
+                    this.insertFront(false);
+                    this.remainingHeroes().splice(position, 0, this.currentHero());
+                    this.currentHero(this.remainingHeroes.pop());
+                    //this.heroModel.heroId(this.currentHero());
+                    //this.currentAttribute(self.selectedAttributes()[Math.floor(Math.random() * self.selectedAttributes().length)]);
+                    //this.heroModel.selectedHeroLevel(getRandomInt(parseInt(self.minLevel()), parseInt(self.maxLevel())));
+                    /*if (this.questionStore[this.currentHero()]) {
+                        this.currentAttribute(this.questionStore[this.currentHero()].attribute);
+                        this.heroModel.selectedHeroLevel(this.questionStore[this.currentHero()].level);
+                    }
+                    else {
+                        this.currentAttribute(self.selectedAttributes()[Math.floor(Math.random() * self.selectedAttributes().length)]);
+                        this.heroModel.selectedHeroLevel(getRandomInt(parseInt(self.minLevel()), parseInt(self.maxLevel())));
+                    }
+                    console.log(this.heroModel.heroData().displayname, this.currentAttribute());*/
+                    if (self.questionStore[self.currentHero()]) {
+                        this.text(self.questionStore[self.currentHero()].question);
+                    }
+                    else {
+                        this.question = this.createQuestion();
+                        this.text(this.question.question);
+                    }
+                }
+                // when state is 1, we show the answer
+                else if (this.state() === 1) {
+                    if (self.questionStore[self.currentHero()]) {
+                        this.text(self.questionStore[self.currentHero()].answer);
+                    }
+                    else {
+                        this.text(this.question.answer);
+                    }
+                }
+
+                this.state((this.state() + 1) % 2);
+
+                if (this.textToSpeech()) {
+                    responsiveVoice.speak(this.text().toString().replace('<br>', ' '), 'US English Female', {"onend": this.loop});
+                }
+                else {
+                    this.loop();
+                }
+            };
+            
+            this.loop = function () {
+                if (self.autoPlay()) {
+                    clearTimeout(self.autoPlayInterval);
+                    self.autoPlayInterval = setTimeout(function () {
+                        self.run();
+                    }, self.autoPlayDelay());
+                }            
+            }
+
+
+            this.selectAllHeroes = function () {
+                self.selectedHeroes(self.heroes.map(function (o) { return o.heroName; }));
+            }
+            this.deselectAllHeroes = function () {
+                this.selectedHeroes.removeAll();
+            }
+            this.selectAllAttributes = function () {
+                self.selectedAttributes(self.attributes().map(function (o) { return o.id; }));
+            }
+            this.deselectAllAttributes = function () {
+                this.selectedAttributes.removeAll();
+            }
+
+            this.wrong = function () {
+                this.insertFront(true);
+                clearTimeout(this.autoPlayInterval);
+                this.run();
+            }
+
+            this.autoPlay = ko.observable(query_string['auto'] == 1 ? true : false);
+            this.autoPlay.subscribe(function (newValue) {
+                updateQueryStringParam("auto", newValue ? 1 : 0);
+            });
+            this.autoPlayDelay = ko.observable(parseInt(query_string['delay'])).extend({ numeric: {defaultValue: 3000} });
+            this.autoPlayDelay.subscribe(function (newValue) {
+                updateQueryStringParam("delay", newValue);
+            });
+            this.autoPlayInterval;
+            this.autoPlay.subscribe(function(newValue) {
+                if (!newValue) {
+                    clearInterval(self.autoPlayInterval);
+                }
+            });
+            
+            this.questionTypes = ko.observableArray(['attributes']);
+            this.questionTypes.subscribe(function(changes) {
+                if (self.questionTypes().length === 0) {
+                    var arr = [];
+                    changes.forEach(function(change) {
+                        if (change.status === 'deleted') arr.push(change.value);
+                    });
+                    self.questionTypes(arr);
+                }
+            }, null, "arrayChange");
+            
+            this.abilityQuestionTypes = ko.observableArray(['attributes']);
+            this.abilityQuestionTypes.subscribe(function(changes) {
+                if (self.abilityQuestionTypes().length === 0) {
+                    var arr = [];
+                    changes.forEach(function(change) {
+                        if (change.status === 'deleted') arr.push(change.value);
+                    });
+                    self.abilityQuestionTypes(arr);
+                }
+            }, null, "arrayChange");
+            this.abilityQuestionTypesVisible = ko.computed(function () {
+                return self.questionTypes().indexOf('abilities') !== -1;
+            });
+        }
+        var vm = new ViewModel();
+        ko.applyBindings(vm);
+    });
+});
+}).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
+},{"./ko.bindingHandlers.checkbox":42,"./ko.extenders.numeric":43,"bit-array-js":1,"dota-hero-calculator-library":32}]},{},[44]);

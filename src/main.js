@@ -1,111 +1,10 @@
 var $ = require('jquery');
 var ko = require('knockout');
 var HeroCalc = require('dota-hero-calculator-library');
+require('./ko.extenders.numeric');
+require('./ko.bindingHandlers.checkbox');
 var BitArray = require('bit-array-js');
-
 $(function () {
-    
-    ko.extenders.numeric = function(target, opts) {
-        //create a writable computed observable to intercept writes to our observable
-        var result = ko.pureComputed({
-            read: target,  //always return the original observables value
-            write: function(newValue) {
-                var current = target(),
-                    roundingMultiplier = Math.pow(10, (opts === Object(opts) ? opts.precision : opts) || 0),
-                    newValueAsNum = isNaN(newValue) ? (opts.defaultValue || 0) : +newValue,
-                    valueToWrite = Math.round(newValueAsNum * roundingMultiplier) / roundingMultiplier;
-     
-                //only write if it changed
-                if (valueToWrite !== current) {
-                    target(valueToWrite);
-                } else {
-                    //if the rounded value is the same, but a different value was written, force a notification for the current field
-                    if (newValue !== current) {
-                        target.notifySubscribers(valueToWrite);
-                    }
-                }
-            }
-        }).extend({ notify: 'always' });
-     
-        //initialize with current value to make sure it is rounded appropriately
-        result(target());
-     
-        //return the new computed observable
-        return result;
-    };
-
-    // Knockout checked binding doesn't work with Bootstrap checkboxes
-    ko.bindingHandlers.checkbox = {
-        init: function (element, valueAccessor) {
-            var $element = $(element),
-                handler = function (e) {
-                // we need to handle change event after bootsrap will handle its event
-                // to prevent incorrect changing of checkbox state
-                setTimeout(function () {
-                    var $checkbox = $(e.target),
-                        value = valueAccessor(),
-                        data = $checkbox.val(),
-                        isChecked = $checkbox.parent().hasClass('active');
-                    
-                    if(!$checkbox.prop('disbled')) {
-                        if (ko.unwrap(value) instanceof Array) {
-                            var index = ko.utils.arrayIndexOf(ko.unwrap(value), (data));
-
-                            if (isChecked && (index === -1)) {
-                                value.push(data);
-                            } else if (!isChecked && (index !== -1)) {
-                                value.splice(index, 1);
-                            }
-                        } else {
-                            value(isChecked);
-                        }
-                    }
-                }, 0);
-            };
-
-            if ($element.attr('data-toggle') === 'buttons' && $element.find('input:checkbox').length) {
-
-                if (!(ko.unwrap(valueAccessor()) instanceof Array)) {
-                    throw new Error('checkbox binding should be used only with array or observableArray values in this case');
-                }
-
-                $element.on('change', 'input:checkbox', handler);
-            } else if ($element.attr('type') === 'checkbox') {
-
-                if (!ko.isObservable(valueAccessor())) {
-                    throw new Error('checkbox binding should be used only with observable values in this case');
-                }
-
-                $element.on('change', handler);
-            } else {
-                throw new Error('checkbox binding should be used only with bootstrap checkboxes');
-            }
-        },
-
-        update: function (element, valueAccessor) {
-            var $element = $(element),
-                value = ko.unwrap(valueAccessor()),
-                isChecked;
-
-            if (value instanceof Array) {
-                if ($element.attr('data-toggle') === 'buttons') {
-                    $element.find('input:checkbox').each(function (index, el) {
-                        isChecked = ko.utils.arrayIndexOf(value, el.value) !== -1;
-                        $(el).parent().toggleClass('active', isChecked);
-                        el.checked = isChecked;
-                    });
-                } else {
-                    isChecked = ko.utils.arrayIndexOf(value, $element.val()) !== -1;
-                    $element.toggleClass('active', isChecked);
-                    $element.find('input').prop('checked', isChecked);
-                }
-            } else {
-                isChecked = !!value;
-                $element.prop('checked', isChecked);
-                $element.parent().toggleClass('active', isChecked);
-            }
-        }
-    };
 
     HeroCalc.init("/media/js/herodata.json","/media/js/itemdata.json","/media/js/unitdata.json", function () {
         var attributeOptions = [
@@ -263,7 +162,7 @@ $(function () {
             this.text = ko.observable('<i>Tap to start</i>');
             this.remainingHeroes = ko.observableArray(shuffle(self.selectedHeroes().slice(0)));
             this.insertFront = ko.observable(false);
-            this.attributeOverride = {};
+            this.questionStore = {};
             this.textToSpeech = ko.observable(query_string['tts'] == 1 ? true : false);
             this.textToSpeech.subscribe(function (newValue) {
                 updateQueryStringParam("tts", newValue ? 1 : 0);
@@ -287,6 +186,88 @@ $(function () {
             });
             
             this.heroModel = new HeroCalc.HeroModel('abaddon');
+            
+            this.questionGenerator = {};
+            this.questionGenerator.attributes = function (heroModel, hero, attributes, minLevel, maxLevel, abilityQuestionTypes) {
+                var attribute = attributes[Math.floor(Math.random() * attributes.length)];
+                var level = getRandomInt(minLevel, maxLevel);
+                heroModel.heroId(hero);
+                heroModel.selectedHeroLevel(level);
+                var question = 'Level ' + level + ' ' + self.heroModel.heroData().displayname + '<br>' + attributeOptions.filter(function(a) {
+                        return a.id == attribute;
+                    })[0].name;
+                var answer = getAttributeValue(heroModel, attribute);
+                
+                return { question: question, answer: answer };
+            }
+            
+            this.questionGenerator.abilities = function (heroModel, hero, attributes, minLevel, maxLevel, abilityQuestionTypes) {
+                var abilityQuestionType = abilityQuestionTypes[Math.floor(Math.random() * abilityQuestionTypes.length)];
+                heroModel.heroId(hero);
+                var ability;
+                while (!ability) {
+                    ability = heroModel.ability().abilities()[Math.floor(Math.random() * heroModel.ability().abilities().length)];
+                    
+                    if (ability.displayname === 'Attribute Bonus' || ability.displayname === '' || ability.displayname === 'Empty' ||
+                        !ability.hasOwnProperty(abilityQuestionType) || ability[abilityQuestionType].length === 0) {
+                        ability = null;
+                        continue;
+                    }
+                    switch (abilityQuestionType) {
+                        case 'attributes':
+                            var abilityAttributes = ability.attributes.filter(function(a) {
+                                return a.hasOwnProperty('tooltip');
+                            });
+                            if (abilityAttributes.length === 0) {
+                                ability = null;
+                                continue;
+                            }
+                            var abilityAttribute = abilityAttributes[Math.floor(Math.random() * abilityAttributes.length)];
+                            //console.log(abilityAttribute);
+                            var values = abilityAttribute.value;
+                            var tooltip = abilityAttribute.tooltip;
+                        break;
+                        case 'cooldown':
+                            var tooltip = 'Cooldown';
+                            var values = ability[abilityQuestionType];
+                        break;
+                        case 'manacost':
+                            var tooltip = 'Mana Cost';
+                            var values = ability[abilityQuestionType];
+                        break;
+                    }
+                }
+                
+                var maxAbilityLevel = heroModel.getAbilityLevelMax(ability);
+                var abilityLevel = getRandomInt(1, maxAbilityLevel);
+                if (abilityLevel > values.length) {
+                    var value = values[0];
+                }
+                else {
+                    var value = values[Math.max(0, abilityLevel - 1)];
+                }
+                
+                var question = self.heroModel.heroData().displayname + '<br>' + ability.displayname + '<br>Level ' + abilityLevel + ' ' + tooltip;
+                //console.log(question, values, value);
+                return { question: question, answer: value };
+            }
+            //this.questionGenerator.abilities(this.heroModel, 'abaddon', [], 1, 1);
+            
+            this.createQuestion = function () {
+                var questionType = self.questionTypes()[Math.floor(Math.random() * self.questionTypes().length)];
+                //console.log('questionType', questionType, self.questionTypes());
+                return this.questionGenerator[questionType](self.heroModel, self.currentHero(), self.selectedAttributes(), parseInt(self.minLevel()), parseInt(self.maxLevel()), self.abilityQuestionTypes());
+            }
+            
+            this.getQuestion = function () {
+                if (!self.currentAttribute()) return;
+                //console.log(self.heroModel.selectedHeroLevel(), self.heroModel.heroData().displayname, self.currentAttribute());
+                return 'Level ' + self.heroModel.selectedHeroLevel() + ' ' + self.heroModel.heroData().displayname + '<br>' + attributeOptions.filter(function(a) {
+                        return a.id == self.currentAttribute();
+                    })[0].name;
+            }
+            
+            this.question;
             
             this.run = function () {
                 if (this.selectedHeroes().length === 0 || this.selectedAttributes().length === 0) {
@@ -312,41 +293,50 @@ $(function () {
                     
                     // insertFront is set to true when the previous question was not answered or incorrect
                     // this indicates that the hero in question should be placed back into the remainingHeroes list near the front so it will be asked again sooner
-                    // also set attributeOverride for the hero to currentAttribute so the same question will be asked next time the hero is picked.
+                    // also store question in questionStore for the hero so the same question will be asked next time the hero is picked.
                     if (this.insertFront()) {
                         position = getRandomInt(i + 1, Math.max(i + 1, this.remainingHeroes().length - 3));
-                        this.attributeOverride[this.currentHero()] = {
-                            attribute: this.currentAttribute(),
-                            level: this.heroModel.selectedHeroLevel()
-                        };
+                        this.questionStore[this.currentHero()] = this.question;
                     }
                     // when insertFront is false we want to put the hero into the back portion of the remainingHeroes list
                     // the question was answered correctly so the hero should not appear again too soon.
                     else {
                         position = getRandomInt(0, i);
-                        delete this.attributeOverride[this.currentHero()];
+                        delete this.questionStore[this.currentHero()];
                     }
                     
-                    console.log('insertFront', this.insertFront(), i, position, this.currentHero(), this.attributeOverride[this.currentHero()]);
+                    //console.log('insertFront', this.insertFront(), i, position, this.currentHero(), this.questionStore[this.currentHero()]);
                     this.insertFront(false);
                     this.remainingHeroes().splice(position, 0, this.currentHero());
                     this.currentHero(this.remainingHeroes.pop());
-                    this.heroModel.heroId(this.currentHero());
-                    if (this.attributeOverride[this.currentHero()]) {
-                        this.currentAttribute(this.attributeOverride[this.currentHero()].attribute);
-                        this.heroModel.selectedHeroLevel(this.attributeOverride[this.currentHero()].level);
-                    } else {
+                    //this.heroModel.heroId(this.currentHero());
+                    //this.currentAttribute(self.selectedAttributes()[Math.floor(Math.random() * self.selectedAttributes().length)]);
+                    //this.heroModel.selectedHeroLevel(getRandomInt(parseInt(self.minLevel()), parseInt(self.maxLevel())));
+                    /*if (this.questionStore[this.currentHero()]) {
+                        this.currentAttribute(this.questionStore[this.currentHero()].attribute);
+                        this.heroModel.selectedHeroLevel(this.questionStore[this.currentHero()].level);
+                    }
+                    else {
                         this.currentAttribute(self.selectedAttributes()[Math.floor(Math.random() * self.selectedAttributes().length)]);
                         this.heroModel.selectedHeroLevel(getRandomInt(parseInt(self.minLevel()), parseInt(self.maxLevel())));
                     }
-                    console.log(this.heroModel.heroData().displayname, this.currentAttribute());
-                    this.text('Level ' + this.heroModel.selectedHeroLevel() + ' ' + this.heroModel.heroData().displayname + '<br>' + attributeOptions.filter(function(a) {
-                        return a.id == self.currentAttribute();
-                    })[0].name);
+                    console.log(this.heroModel.heroData().displayname, this.currentAttribute());*/
+                    if (self.questionStore[self.currentHero()]) {
+                        this.text(self.questionStore[self.currentHero()].question);
+                    }
+                    else {
+                        this.question = this.createQuestion();
+                        this.text(this.question.question);
+                    }
                 }
                 // when state is 1, we show the answer
                 else if (this.state() === 1) {
-                    this.text(getAttributeValue(this.heroModel, this.currentAttribute()));
+                    if (self.questionStore[self.currentHero()]) {
+                        this.text(self.questionStore[self.currentHero()].answer);
+                    }
+                    else {
+                        this.text(this.question.answer);
+                    }
                 }
 
                 this.state((this.state() + 1) % 2);
@@ -401,6 +391,31 @@ $(function () {
                 if (!newValue) {
                     clearInterval(self.autoPlayInterval);
                 }
+            });
+            
+            this.questionTypes = ko.observableArray(['attributes']);
+            this.questionTypes.subscribe(function(changes) {
+                if (self.questionTypes().length === 0) {
+                    var arr = [];
+                    changes.forEach(function(change) {
+                        if (change.status === 'deleted') arr.push(change.value);
+                    });
+                    self.questionTypes(arr);
+                }
+            }, null, "arrayChange");
+            
+            this.abilityQuestionTypes = ko.observableArray(['attributes']);
+            this.abilityQuestionTypes.subscribe(function(changes) {
+                if (self.abilityQuestionTypes().length === 0) {
+                    var arr = [];
+                    changes.forEach(function(change) {
+                        if (change.status === 'deleted') arr.push(change.value);
+                    });
+                    self.abilityQuestionTypes(arr);
+                }
+            }, null, "arrayChange");
+            this.abilityQuestionTypesVisible = ko.computed(function () {
+                return self.questionTypes().indexOf('abilities') !== -1;
             });
         }
         var vm = new ViewModel();

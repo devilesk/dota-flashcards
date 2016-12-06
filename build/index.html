@@ -28,7 +28,7 @@
         <!-- Tab panes -->
         <div class="tab-content">
             <div role="tabpanel" class="tab-pane active" id="home">
-                <div id="contents" data-bind="html: text, click: run"></div>
+                <div id="contents" data-bind="html: '', click: run"></div>
                 <button id="btn-user-input" class="btn btn-danger btn-lg btn-block" data-bind="click: wrong, text: state() == 1 ? 'Don\'t know' : 'Got it wrong'"></button>
             </div>
             <div role="tabpanel" class="tab-pane" id="heroes">
@@ -85,6 +85,25 @@
                             <input class="range-slider form-control" type="range" min="1" max="25" data-bind="value: maxLevel, valueUpdate: 'input'"/>
                         </div>
                     </div>
+                </div>
+                <div class="btn-group btn-group-justified form-group" data-toggle="buttons" data-bind="checkbox: questionTypes">
+                    <label class="btn btn-primary">
+                        <input type="checkbox" value="attributes" /> Attributes
+                    </label>
+                    <label class="btn btn-primary">
+                        <input type="checkbox" value="abilities" /> Abilities
+                    </label>
+                </div>
+                <div class="btn-group btn-group-justified form-group" data-toggle="buttons" data-bind="visible: abilityQuestionTypesVisible, checkbox: abilityQuestionTypes">
+                    <label class="btn btn-primary">
+                        <input type="checkbox" value="attributes" /> Attributes
+                    </label>
+                    <label class="btn btn-primary">
+                        <input type="checkbox" value="cooldown" /> Cooldown
+                    </label>
+                    <label class="btn btn-primary">
+                        <input type="checkbox" value="manacost" /> Mana Cost
+                    </label>
                 </div>
             </div>
         </div>
