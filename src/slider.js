@@ -29,11 +29,17 @@ Slider.prototype.init = function(selector) {
 
     // 4c. Set up HammerJS
     var sliderManager = new Hammer.Manager(this.sliderEl);
-    sliderManager.add(new Hammer.Pan({
-        threshold: 0,
+    var pan = new Hammer.Pan({
+        threshold: 5,
         pointers: 0
-    }));
-    sliderManager.add(new Hammer.Tap());
+    })
+    sliderManager.add(pan);
+    var tap = new Hammer.Tap({
+        interval: 0
+    })
+    sliderManager.add(tap);
+    
+    pan.requireFailure(tap);
     
     var self = this;
     
