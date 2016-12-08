@@ -14,12 +14,18 @@
 }
 .contents {
     font-size: 40px;
-    height: calc(100% - 60px);
+    height: 100%;
     padding: 10px;
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
+}
+.tab-pane, #slider {
+    height: 100%;
+}
+.has-slider {
+    height: calc(100% - 60px);
 }
 #home {
     overflow: hidden;
