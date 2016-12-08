@@ -1,8 +1,13 @@
 var $ = require('jquery');
 var ko = require('knockout');
 var HeroCalc = require('dota-hero-calculator-library');
-require('./ko.bindingHandlers.checkbox');
 var BitArray = require('bit-array-js');
+var URI = require('urijs');
+
+require('./ko.bindingHandlers.checkbox');
+require('./ko.bindingHandlers.radio');
+require('./ko.extenders.urlSync');
+
 $(function () {
 
     HeroCalc.init("/media/js/herodata.json","/media/js/itemdata.json","/media/js/unitdata.json", function () {
@@ -37,39 +42,6 @@ $(function () {
             {id: "visionrangenight", name: "Night Vision Range"},
         ];
         
-        var query_string = (function(a) {
-            if (a == "") return {};
-            var b = {};
-            for (var i = 0; i < a.length; ++i)
-            {
-                var p=a[i].split('=', 2);
-                if (p.length == 1)
-                    b[p[0]] = "";
-                else
-                    b[p[0]] = decodeURIComponent(p[1].replace(/\+/g, " "));
-            }
-            return b;
-        })(window.location.search.substr(1).split('&'));
-        
-        // Explicitly save/update a url parameter using HTML5's replaceState().
-        function updateQueryStringParam(key, value) {
-            baseUrl = [location.protocol, '//', location.host, location.pathname].join('');
-            urlQueryString = document.location.search;
-            var newParam = key + '=' + value,
-                params = '?' + newParam;
-
-            // If the "search" string exists, then build params from it
-            if (urlQueryString) {
-                keyRegex = new RegExp('([\?&])' + key + '[^&]*');
-                // If param exists already, update it
-                if (urlQueryString.match(keyRegex) !== null) {
-                    params = urlQueryString.replace(keyRegex, "$1" + newParam);
-                } else { // Otherwise, add it to end of query string
-                    params = urlQueryString + '&' + newParam;
-                }
-            }
-            window.history.replaceState({}, "", baseUrl + params);
-        }
         
         function getRandomInt(min, max) {
             return Math.floor(Math.random() * (max - min + 1)) + min;
@@ -112,18 +84,459 @@ $(function () {
             return HeroCalc.Data.heroData['npc_dota_hero_' + hero].HeroID;
         }
 
+        var heroData = HeroCalc.Data.heroData;
+        var heroIds = HeroCalc.HeroOptions.map(function (hero) { return hero.heroName });
+        var heroModel = new HeroCalc.HeroModel('abaddon');
+        
+        function buildDeck() {
+            var DECK = [];
+            for (var i = 0; i < heroIds.length; i++) {
+                for (var j = 0; j < 25; j++) {
+                    for (var k = 0; k < attributes.length; k++) {
+                        var card = {
+                            id: i * heroIds.length + j * 25 + k,
+                            kind: 'attributes',
+                            hero: heroIds[i],
+                            name: attributes[k],
+                            level: j + 1
+                        }
+                        //card.correct = 0;
+                        //card.wrong = 0;
+                        DECK.push(card);
+                    }
+                }
+            }
+            
+            var c = heroIds.length * attributes.length * 25, i = 0, j = 0, k = 0, l = 0, m = 0, n = 0;
+            while (i < heroIds.length) {
+                var heroId = heroIds[i];
+                var abilities = heroData['npc_dota_hero_' + heroId].abilities;
+                while (j < abilities.length) {
+                    var ability = abilities[j];
+                    if (ability.displayname === 'Attribute Bonus' || ability.displayname === '' || ability.displayname === 'Empty') {
+                        j++;
+                        k = 0;
+                        l = 0;
+                        m = 0;
+                        n = 0;
+                        continue;
+                    }
+                    
+                    var maxAbilityLevel = heroModel.getAbilityLevelMax(ability);
+                    while (k < ability.attributes.length) {
+                        var attribute = ability.attributes[k];
+                        if (!attribute.hasOwnProperty('tooltip')) {
+                            k++;
+                            l = 0;
+                            continue;
+                        }
+                        
+                        while (l < maxAbilityLevel) {
+                            l++;
+                            DECK.push({
+                                id: c,
+                                kind: 'abilities',
+                                hero: heroId,
+                                name: ability.name,
+                                property: attribute.name,
+                                level: l
+                            });
+                            c++;
+                        }
+                        k++;
+                        l = 0;
+                    }
+                    
+                    while (m < maxAbilityLevel) {
+                        m++;
+                        DECK.push({
+                            id: c,
+                            kind: 'abilities',
+                            hero: heroId,
+                            name: ability.name,
+                            property: 'cooldown',
+                            level: m
+                        });
+                        c++;
+                    }
+                    
+                    while (n < maxAbilityLevel) {
+                        n++;
+                        DECK.push({
+                            id: c,
+                            kind: 'abilities',
+                            hero: heroId,
+                            name: ability.name,
+                            property: 'manacost',
+                            level: n
+                        });
+                        c++;
+                    }
+                    
+                    j++;
+                    k = 0;
+                    l = 0;
+                    m = 0;
+                    n = 0;
+                }
+                i++;
+                j = 0;
+                k = 0;
+                l = 0;
+                m = 0;
+                n = 0;
+            }
+                    
+            /*var iter = getAbilityIterator();
+            var q = iter.next();
+            while (q) {
+                q.id += heroIds.length * attributes.length * 25;
+                //q.correct = 0;
+                //q.wrong = 0;
+                DECK.push(q);
+                q = iter.next();
+            }*/
+            return DECK;
+        }
+        //var t0 = performance.now();
+        var DECK = buildDeck();
+        //var t1 = performance.now();
+        //alert("Deck build took " + (t1 - t0) + "ms.")
+        
+        function filterDeck(DECK, heroIds, attributes, minLevel, maxLevel, abilityQuestionTypes) {
+            return DECK.filter(function (card) {
+                if (heroIds.indexOf(card.hero) === -1) return false;
+                switch (card.kind) {
+                    case 'attributes':
+                        return card.level >= minLevel && card.level <= maxLevel && attributes.indexOf(card.name) !== -1;
+                    break;
+                    case 'abilities':
+                        switch (card.property) {
+                            case 'manacost':
+                            case 'cooldown':
+                                return abilityQuestionTypes.indexOf(card.property) !== -1;
+                            break;
+                            default:
+                                return abilityQuestionTypes.indexOf('attributes') !== -1;
+                            break;
+                        }
+                    break;
+                }
+            });
+        }
+        
+        function formatCard(card) {
+            var heroName = heroData['npc_dota_hero_' + card.hero].displayname;
+            switch (card.kind) {
+                case 'attributes':
+                    return 'Level ' + card.level + ' ' + heroName + '<br>' + attributeOptions.filter(function(a) {
+                        return a.id == card.name;
+                    })[0].name;
+                break;
+                case 'abilities':
+                    var ability = heroData['npc_dota_hero_' + card.hero].abilities.filter(function (ability) { return ability.name == card.name })[0]
+                    switch (card.property) {
+                        case 'manacost':
+                            tooltip = 'Mana Cost';
+                        break;
+                        case 'cooldown':
+                            tooltip = 'Cooldown';
+                        break;
+                        default:
+                            var attribute = ability.attributes.filter(function (attribute) { return attribute.name == card.property })[0];
+                            tooltip = attribute.tooltip;
+                        break;
+                    }
+                    return heroName + '<br>' + ability.displayname + '<br>Level ' + card.level + '<br>' + tooltip;
+                break;
+            }
+        }
+        
+        function getCardAnswer(card) {
+            heroModel.heroId(card.hero);
+            switch (card.kind) {
+                case 'attributes':
+                    heroModel.selectedHeroLevel(card.level);
+                    return getAttributeValue(heroModel, card.name);
+                break;
+                case 'abilities':
+                    var ability = heroData['npc_dota_hero_' + card.hero].abilities.filter(function (ability) { return ability.name == card.name })[0]
+                    var values;
+                    switch (card.property) {
+                        case 'manacost':
+                        case 'cooldown':
+                            values = ability[card.property];
+                        break;
+                        default:
+                            var attribute = ability.attributes.filter(function (attribute) { return attribute.name == card.property })[0];
+                            values = attribute.value;
+                        break;
+                    }
+                    if (card.level > values.length) {
+                        var value = values[0];
+                    }
+                    else {
+                        var value = values[Math.max(0, card.level - 1)];
+                    }
+                
+                    return value;
+                break;
+            }
+        }
+        
+        /*function getAbilityIterator() {
+            var c = 0, i = 0, j = 0, k = 0, l = 0, m = 0, n = 0;
+            
+            return {
+                next: function () {
+                    //console.log(i, j, k, l, m, n);
+                    while (i < heroIds.length) {
+                        var heroId = heroIds[i];
+                        var abilities = heroData['npc_dota_hero_' + heroId].abilities;
+                        while (j < abilities.length) {
+                            var ability = abilities[j];
+                            if (ability.displayname === 'Attribute Bonus' || ability.displayname === '' || ability.displayname === 'Empty') {
+                                j++;
+                                k = 0;
+                                l = 0;
+                                m = 0;
+                                n = 0;
+                                continue;
+                            }
+                            
+                            var maxAbilityLevel = heroModel.getAbilityLevelMax(ability);
+                            while (k < ability.attributes.length) {
+                                var attribute = ability.attributes[k];
+                                if (!attribute.hasOwnProperty('tooltip')) {
+                                    k++;
+                                    l = 0;
+                                    continue;
+                                }
+                                
+                                while (l < maxAbilityLevel) {
+                                    c++;
+                                    l++;
+                                    return {
+                                        id: c,
+                                        kind: 'abilities',
+                                        hero: heroId,
+                                        name: ability.name,
+                                        property: attribute.name,
+                                        level: l
+                                    };
+                                }
+                                k++;
+                                l = 0;
+                            }
+                            
+                            while (m < maxAbilityLevel) {
+                                c++;
+                                m++;
+                                return {
+                                    id: c,
+                                    kind: 'abilities',
+                                    hero: heroId,
+                                    name: ability.name,
+                                    property: 'cooldown',
+                                    level: m
+                                };
+                            }
+                            
+                            while (n < maxAbilityLevel) {
+                                c++;
+                                n++;
+                                return {
+                                    id: c,
+                                    kind: 'abilities',
+                                    hero: heroId,
+                                    name: ability.name,
+                                    property: 'manacost',
+                                    level: n
+                                };
+                            }
+                            
+                            j++;
+                            k = 0;
+                            l = 0;
+                            m = 0;
+                            n = 0;
+                        }
+                        i++;
+                        j = 0;
+                        k = 0;
+                        l = 0;
+                        m = 0;
+                        n = 0;
+                    }
+                    
+                    c = 0, i = 0, j = 0, k = 0, l = 0, m = 0, n = 0;
+                }
+            }
+        }*/
+        
+        /*function getAbilityQuestionCount() {
+            var c = 0;
+            for (var i = 0; i < heroIds.length; i++) {
+                var heroId = heroIds[i];
+                var abilities = heroData['npc_dota_hero_' + heroId].abilities;
+                for (var j = 0; j < abilities.length; j++) {
+                    var ability = abilities[j];
+                    if (ability.displayname === 'Attribute Bonus' || ability.displayname === '' || ability.displayname === 'Empty') continue;
+                    
+                    var maxAbilityLevel = heroModel.getAbilityLevelMax(ability);
+                    for (var k = 0; k < ability.attributes.length; k++) {
+                        var attribute = ability.attributes[k];
+                        if (!attribute.hasOwnProperty('tooltip')) continue;
+                        
+                        for (var l = 0; l < maxAbilityLevel; l++) {
+                            c++;
+                        }
+                    }
+                    
+                    for (var k = 0; k < maxAbilityLevel; k++) {
+                        c++;
+                        c++;
+                    }
+                }
+            }
+            return c;
+        }*/
+        /*function test() {
+            console.log('start');
+            var arr = new BitArray(85362);
+            //console.log(arr.toBase64UrlSafe());
+            var heroModel = new HeroCalc.HeroModel('abaddon');
+            var data = [];
+            var counter = 0;
+            var hc = 0;
+            HeroCalc.HeroOptions.forEach(function (hero) {
+                heroModel.heroId(hero.heroName);
+                for (var i = 1; i <= 25; i++) {
+                    heroModel.selectedHeroLevel(i);
+                    attributes.forEach(function (attribute) {
+                        data.push({
+                            kind: 'attributes',
+                            hero: hero.heroName,
+                            attribute: attribute,
+                            level: i
+                        });
+                        counter++;
+                    });
+                }
+                hc++;
+                heroModel.ability().abilities().forEach(function (ability) {
+                    var maxAbilityLevel = heroModel.getAbilityLevelMax(ability);
+                    ability.attributes.forEach(function (attribute) {
+                        if (attribute.hasOwnProperty('tooltip')) {
+                            for (var i = 0; i < maxAbilityLevel; i++) {
+                                counter++;
+                            }
+                        }
+                    });
+                    for (var i = 0; i < maxAbilityLevel; i++) {
+                        counter++;
+                        counter++;
+                    }
+                });
+            });
+            console.log('end', counter, hc, attributes, attributes.length);
+            console.log('end', data);
+            console.log('end', data.sort(function (a, b) {
+                if (a.hero > b.hero) return -1;
+                if (a.hero < b.hero) return 1;
+                if (a.attribute > b.attribute) return -1;
+                if (a.attribute < b.attribute) return 1;
+                if (a.level > b.level) return -1;
+                if (a.level < b.level) return 1;
+                return 0
+            }));
+        }*/
+        /*function test2() {
+            var data = [];
+            for (var i = 0; i < 89469; i++) {
+                data.push(i);
+            }
+            data = shuffle(data);
+            console.log(data);
+            x = [];
+            for (var i = 0; i < 100; i++) {
+                x.push(draw(data[i]));
+            }
+            console.log(x);
+            alert(x.length);
+        }*/
+        /*function drawAttribute(n) {
+            var questionsPerHero = attributes.length * 25;
+            var heroId = Math.floor(n / questionsPerHero);
+            var attributeLevelRemainder = n % questionsPerHero;
+            var level = Math.floor(attributeLevelRemainder / attributes.length);
+            var attributeRemainder = attributeLevelRemainder % 25;
+            console.log(heroId, level, attributeRemainder, attributeLevelRemainder, (heroId * heroIds.length) + (level * 25) + attributeRemainder, n, heroIds[heroId], level, attributes[attributeRemainder]);
+        }*/
+        
+        /*function draw(n) {
+            if (n < TOTAL_ATTRIBUTE_QUESTIONS) return drawAttribute(n);
+            n = n % TOTAL_ATTRIBUTE_QUESTIONS;
+            if (n >= TOTAL_ABILITY_QUESTIONS) throw "error";
+            var c = 0;
+            for (var i = 0; i < heroIds.length; i++) {
+                var heroId = heroIds[i];
+                var abilities = heroData['npc_dota_hero_' + heroId].abilities;
+                for (var j = 0; j < abilities.length; j++) {
+                    var ability = abilities[j];
+                    if (ability.displayname === 'Attribute Bonus' || ability.displayname === '' || ability.displayname === 'Empty') continue;
+                    
+                    var maxAbilityLevel = heroModel.getAbilityLevelMax(ability);
+                    for (var k = 0; k < ability.attributes.length; k++) {
+                        var attribute = ability.attributes[k];
+                        if (!attribute.hasOwnProperty('tooltip')) continue;
+                        
+                        for (var l = 0; l < maxAbilityLevel; l++) {
+                            if (c === n) return {
+                                kind: 'abilities',
+                                hero: heroId,
+                                name: ability.name,
+                                property: attribute.name,
+                                level: l + 1
+                            }
+                            c++;
+                        }
+                    }
+                    
+                    for (var k = 0; k < maxAbilityLevel; k++) {
+                        if (c === n) return {
+                            kind: 'abilities',
+                            hero: heroId,
+                            name: ability.name,
+                            property: 'cooldown',
+                            level: k + 1
+                        }
+                        c++;
+                        if (c === n) return {
+                            kind: 'abilities',
+                            hero: heroId,
+                            name: ability.name,
+                            property: 'manacost',
+                            level: k + 1
+                        }
+                        c++;
+                    }
+                }
+            }
+        }*/
+
         function ViewModel() {
             var self = this;
             this.attributes = ko.observableArray(attributeOptions);
             this.heroes = HeroCalc.HeroOptions;
-
+            var uri = new URI();
             this.selectedAttributesBitArray = new BitArray(32);
-            this.selectedAttributesBitArray.fromBase64UrlSafe(query_string['attributes']);
+            this.selectedAttributesBitArray.fromBase64UrlSafe(uri.query(true)['attributes']);
             this.selectedAttributes = ko.observableArray(self.attributes().map(function(a) {
                 return a.id;
             }).filter(function(h, i) {
                 return self.selectedAttributesBitArray.value(i);
-            }));
+            })).extend({ deferred: true });
             this.selectedAttributes.subscribe(function(changes) {
                 changes.forEach(function(change) {
                     if (change.status === 'added' || change.status === 'deleted') {
@@ -134,212 +547,126 @@ $(function () {
                                 break;
                             }
                         }
-                        updateQueryStringParam("attributes", self.selectedAttributesBitArray.toBase64UrlSafe());
+                        //updateQueryStringParam("attributes", self.selectedAttributesBitArray.toBase64UrlSafe());
                     }
                 });
+                uri.setSearch("attributes", self.selectedAttributesBitArray.toBase64UrlSafe());
+                window.history.replaceState({}, "", uri.toString());
             }, null, "arrayChange");
 
             this.selectedHeroesBitArray = new BitArray(128);
-            this.selectedHeroesBitArray.fromBase64UrlSafe(query_string['heroes']);
+            this.selectedHeroesBitArray.fromBase64UrlSafe(uri.query(true)['heroes']);
             this.selectedHeroes = ko.observableArray(
                 this.heroes.map(function (o) { return o.heroName; }).filter(function (h) { return self.selectedHeroesBitArray.value(getHeroID(h)); })
-            );
+            ).extend({ deferred: true });
             this.selectedHeroes.subscribe(function(changes) {
                 changes.forEach(function(change) {
                     if (change.status === 'added' || change.status === 'deleted') {
                         self.selectedHeroesBitArray.value(getHeroID(change.value), change.status === 'added');
-                        updateQueryStringParam("heroes", self.selectedHeroesBitArray.toBase64UrlSafe());
-
-                        self.remainingHeroes(shuffle(self.selectedHeroes().slice(0)));
+                        //updateQueryStringParam("heroes", self.selectedHeroesBitArray.toBase64UrlSafe());
                     }
                 });
+                uri.setSearch("heroes", self.selectedHeroesBitArray.toBase64UrlSafe());
+                window.history.replaceState({}, "", uri.toString());
             }, null, "arrayChange");
-
-            this.state = ko.observable(0);
-            this.currentAttribute = ko.observable(null);
-            this.currentHero = ko.observable(null);
-            this.text = ko.observable('<i>Tap to start</i>');
-            this.remainingHeroes = ko.observableArray(shuffle(self.selectedHeroes().slice(0)));
-            this.insertFront = ko.observable(false);
-            this.questionStore = {};
-            this.textToSpeech = ko.observable(query_string['tts'] == 1 ? true : false);
-            this.textToSpeech.subscribe(function (newValue) {
-                updateQueryStringParam("tts", newValue ? 1 : 0);
-            });
             
-            this.minLevel = ko.observable(parseInt(query_string['minLevel'])).extend({ numeric: {defaultValue: 1} });
+            this.deck = [];
+            this.card = null;
+            this.state = ko.observable(0);
+            this.text = ko.observable('<i>Tap to start</i>');
+            this.textToSpeech = ko.observable(false).extend({ urlSync: {
+                    param: 'speech',
+                    read: function (value) {
+                        return value != false && value !== 'false';
+                    }
+                }
+            });
+            this.minLevel = ko.observable(1).extend({ numeric: {defaultValue: 1}, urlSync: {
+                    param: 'minlevel',
+                    read: function (value) {
+                        return parseInt(value);
+                    }
+                }
+            });
             this.minLevel.subscribe(function (newValue) {
-                updateQueryStringParam("minLevel", parseInt(self.minLevel()));
                 if (parseInt(newValue) > parseInt(self.maxLevel())) {
                     self.maxLevel(self.minLevel()); 
-                    updateQueryStringParam("maxLevel", parseInt(self.maxLevel()));
                 }
             });
-            this.maxLevel = ko.observable(parseInt(query_string['maxLevel'])).extend({ numeric: {defaultValue: 1} });
+            this.maxLevel = ko.observable(1).extend({ numeric: {defaultValue: 1}, urlSync: {
+                    param: 'maxlevel',
+                    read: function (value) {
+                        return parseInt(value);
+                    }
+                }
+            });
             this.maxLevel.subscribe(function (newValue) {
-                updateQueryStringParam("maxLevel", parseInt(self.maxLevel()));
                 if (parseInt(newValue) < parseInt(self.minLevel())) {
                     self.minLevel(self.maxLevel());
-                    updateQueryStringParam("minLevel", parseInt(self.minLevel()));
                 }
             });
             
-            this.heroModel = new HeroCalc.HeroModel('abaddon');
-            
-            this.questionGenerator = {};
-            this.questionGenerator.attributes = function (heroModel, hero, attributes, minLevel, maxLevel, abilityQuestionTypes) {
-                var attribute = attributes[Math.floor(Math.random() * attributes.length)];
-                var level = getRandomInt(minLevel, maxLevel);
-                heroModel.heroId(hero);
-                heroModel.selectedHeroLevel(level);
-                var question = 'Level ' + level + ' ' + self.heroModel.heroData().displayname + '<br>' + attributeOptions.filter(function(a) {
-                        return a.id == attribute;
-                    })[0].name;
-                var answer = getAttributeValue(heroModel, attribute);
-                
-                return { question: question, answer: answer };
+            this.reset = function () {
+                this.state(0);
+                if (this.card) {
+                    this.deck.push(this.card);
+                }
+                this.card = null;
+                this.text('<i>Tap to start</i>');
             }
             
-            this.questionGenerator.abilities = function (heroModel, hero, attributes, minLevel, maxLevel, abilityQuestionTypes) {
-                var abilityQuestionType = abilityQuestionTypes[Math.floor(Math.random() * abilityQuestionTypes.length)];
-                heroModel.heroId(hero);
-                var ability;
-                while (!ability) {
-                    ability = heroModel.ability().abilities()[Math.floor(Math.random() * heroModel.ability().abilities().length)];
-                    
-                    if (ability.displayname === 'Attribute Bonus' || ability.displayname === '' || ability.displayname === 'Empty' ||
-                        !ability.hasOwnProperty(abilityQuestionType) || ability[abilityQuestionType].length === 0) {
-                        ability = null;
-                        continue;
-                    }
-                    switch (abilityQuestionType) {
-                        case 'attributes':
-                            var abilityAttributes = ability.attributes.filter(function(a) {
-                                return a.hasOwnProperty('tooltip');
-                            });
-                            if (abilityAttributes.length === 0) {
-                                ability = null;
-                                continue;
-                            }
-                            var abilityAttribute = abilityAttributes[Math.floor(Math.random() * abilityAttributes.length)];
-                            //console.log(abilityAttribute);
-                            var values = abilityAttribute.value;
-                            var tooltip = abilityAttribute.tooltip;
-                        break;
-                        case 'cooldown':
-                            var tooltip = 'Cooldown';
-                            var values = ability[abilityQuestionType];
-                        break;
-                        case 'manacost':
-                            var tooltip = 'Mana Cost';
-                            var values = ability[abilityQuestionType];
-                        break;
-                    }
-                }
-                
-                if (tooltip.charAt(tooltip.length - 1) === ':') {
-                    tooltip = tooltip.substring(0, tooltip.length - 1);
-                }
-                var maxAbilityLevel = heroModel.getAbilityLevelMax(ability);
-                var abilityLevel = getRandomInt(1, maxAbilityLevel);
-                if (abilityLevel > values.length) {
-                    var value = values[0];
-                }
-                else {
-                    var value = values[Math.max(0, abilityLevel - 1)];
-                }
-                
-                var question = self.heroModel.heroData().displayname + '<br>' + ability.displayname + '<br>Level ' + abilityLevel + '<br>' + tooltip;
-                //console.log(question, values, value);
-                return { question: question, answer: value };
-            }
-            //this.questionGenerator.abilities(this.heroModel, 'abaddon', [], 1, 1);
-            
-            this.createQuestion = function () {
-                var questionType = self.questionTypes()[Math.floor(Math.random() * self.questionTypes().length)];
-                //console.log('questionType', questionType, self.questionTypes());
-                return this.questionGenerator[questionType](self.heroModel, self.currentHero(), self.selectedAttributes(), parseInt(self.minLevel()), parseInt(self.maxLevel()), self.abilityQuestionTypes());
-            }
-            
-            this.getQuestion = function () {
-                if (!self.currentAttribute()) return;
-                //console.log(self.heroModel.selectedHeroLevel(), self.heroModel.heroData().displayname, self.currentAttribute());
-                return 'Level ' + self.heroModel.selectedHeroLevel() + ' ' + self.heroModel.heroData().displayname + '<br>' + attributeOptions.filter(function(a) {
-                        return a.id == self.currentAttribute();
-                    })[0].name;
-            }
-            
-            this.question;
-            
+            this.isWrong = ko.observable(false);
             this.run = function () {
-                if (this.selectedHeroes().length === 0 || this.selectedAttributes().length === 0) {
+                if (!this.deck.length) {
                     alert('No heroes or attributes selected.');
                     return;
                 }
 
-                if (this.currentHero() == null) {
-                    if (!this.remainingHeroes().length) {
-                        this.remainingHeroes(shuffle(self.selectedHeroes().slice(0)));
-                    }
-                    this.currentHero(this.remainingHeroes.pop());
-                }
-
-                this.heroModel.heroId(this.currentHero());
-                
-                // when state is 0, we need to place currentHero, which represents the previous hero, back into the remainingHeroes list
-                // then we set a new currentHero popped from remainingHeroes
-                // a new currentAttribute and level is also set
+                // when state is 0, pick random card to show
                 if (this.state() === 0) {
-                    var position;
-                    var i = Math.floor(this.remainingHeroes().length * 4 / 5);
                     
-                    // insertFront is set to true when the previous question was not answered or incorrect
-                    // this indicates that the hero in question should be placed back into the remainingHeroes list near the front so it will be asked again sooner
-                    // also store question in questionStore for the hero so the same question will be asked next time the hero is picked.
-                    if (this.insertFront()) {
-                        position = getRandomInt(i + 1, Math.max(i + 1, this.remainingHeroes().length - 3));
-                        this.questionStore[this.currentHero()] = this.question;
+                    // put old card back in deck
+                    if (this.card) {
+                        var index;
+                        switch (this.drawStrategy()) {
+                            case 'back':
+                                index = 0;
+                            break;
+                            case 'random':
+                                // inserts at random position excluding the very end
+                                index = Math.floor(Math.random() * this.deck.length);
+                            break;
+                            case 'training':
+                                var minP = Math.min(this.deck.length, 5);
+                                var maxP = Math.min(this.deck.length, 10);
+                                if (this.isWrong()) {
+                                    index = this.deck.length - getRandomInt(minP, maxP);
+                                }
+                                else {
+                                    index = getRandomInt(0, this.deck.length - maxP);
+                                }
+                            break;
+                        }
+                        this.deck.splice(index, 0, this.card);
+                        
+                        /*if (this.isWrong()) {
+                            this.card.wrong++;
+                        }
+                        else {
+                            this.card.correct++;
+                        }*/
                     }
-                    // when insertFront is false we want to put the hero into the back portion of the remainingHeroes list
-                    // the question was answered correctly so the hero should not appear again too soon.
-                    else {
-                        position = getRandomInt(0, i);
-                        delete this.questionStore[this.currentHero()];
-                    }
-                    
-                    //console.log('insertFront', this.insertFront(), i, position, this.currentHero(), this.questionStore[this.currentHero()]);
-                    this.insertFront(false);
-                    this.remainingHeroes().splice(position, 0, this.currentHero());
-                    this.currentHero(this.remainingHeroes.pop());
-                    //this.heroModel.heroId(this.currentHero());
-                    //this.currentAttribute(self.selectedAttributes()[Math.floor(Math.random() * self.selectedAttributes().length)]);
-                    //this.heroModel.selectedHeroLevel(getRandomInt(parseInt(self.minLevel()), parseInt(self.maxLevel())));
-                    /*if (this.questionStore[this.currentHero()]) {
-                        this.currentAttribute(this.questionStore[this.currentHero()].attribute);
-                        this.heroModel.selectedHeroLevel(this.questionStore[this.currentHero()].level);
-                    }
-                    else {
-                        this.currentAttribute(self.selectedAttributes()[Math.floor(Math.random() * self.selectedAttributes().length)]);
-                        this.heroModel.selectedHeroLevel(getRandomInt(parseInt(self.minLevel()), parseInt(self.maxLevel())));
-                    }
-                    console.log(this.heroModel.heroData().displayname, this.currentAttribute());*/
-                    if (self.questionStore[self.currentHero()]) {
-                        this.text(self.questionStore[self.currentHero()].question);
-                    }
-                    else {
-                        this.question = this.createQuestion();
-                        this.text(this.question.question);
-                    }
+                
+                    this.card = this.deck.pop();
+                    console.log(this.card);
+                    this.text(formatCard(this.card));
+                    this.isWrong(false);
                 }
                 // when state is 1, we show the answer
                 else if (this.state() === 1) {
-                    if (self.questionStore[self.currentHero()]) {
-                        this.text(self.questionStore[self.currentHero()].answer);
-                    }
-                    else {
-                        this.text(this.question.answer);
-                    }
+                    this.text(getCardAnswer(this.card));
                 }
+                console.log(this.text());
 
                 this.state((this.state() + 1) % 2);
 
@@ -360,7 +687,6 @@ $(function () {
                 }            
             }
 
-
             this.selectAllHeroes = function () {
                 self.selectedHeroes(self.heroes.map(function (o) { return o.heroName; }));
             }
@@ -374,19 +700,30 @@ $(function () {
                 this.selectedAttributes.removeAll();
             }
 
-            this.wrong = function () {
-                this.insertFront(true);
+            this.correct = function () {
                 clearTimeout(this.autoPlayInterval);
                 this.run();
             }
 
-            this.autoPlay = ko.observable(query_string['auto'] == 1 ? true : false);
-            this.autoPlay.subscribe(function (newValue) {
-                updateQueryStringParam("auto", newValue ? 1 : 0);
+            this.wrong = function () {
+                clearTimeout(this.autoPlayInterval);
+                this.isWrong(true);
+                this.run();
+            }
+
+            this.autoPlay = ko.observable(false).extend({ urlSync: {
+                    param: 'autoplay',
+                    read: function (value) {
+                        return value != false && value !== 'false';
+                    }
+                }
             });
-            this.autoPlayDelay = ko.observable(parseInt(query_string['delay'])).extend({ numeric: {defaultValue: 3000} });
-            this.autoPlayDelay.subscribe(function (newValue) {
-                updateQueryStringParam("delay", newValue);
+            this.autoPlayDelay = ko.observable(3000).extend({ numeric: {defaultValue: 3000}, urlSync: {
+                    param: 'autodelay',
+                    read: function (value) {
+                        return parseInt(value);
+                    }
+                }
             });
             this.autoPlayInterval;
             this.autoPlay.subscribe(function(newValue) {
@@ -395,7 +732,23 @@ $(function () {
                 }
             });
             
-            this.questionTypes = ko.observableArray(['attributes']);
+            this.drawStrategy = ko.observable('training').extend({ urlSync: {
+                    param: 'shuffle',
+                    read: function (value) {
+                        value = value.toLowerCase();
+                        return ['training', 'back', 'random'].indexOf(value) !== -1 ? value : 'training';
+                    }
+                }
+            });
+            
+            this.questionTypes = ko.observableArray(['attributes']).extend({ urlSync: {
+                    param: 'categories',
+                    read: function (value) {
+                        value = [].concat(value).map(function (o) { return o.toLowerCase(); }).filter(function (o) { return ['attributes', 'abilities'].indexOf(o) !== -1 });
+                        return value.length ? value : ['attributes'];
+                    }
+                }
+            });
             this.questionTypes.subscribe(function(changes) {
                 if (self.questionTypes().length === 0) {
                     var arr = [];
@@ -406,7 +759,14 @@ $(function () {
                 }
             }, null, "arrayChange");
             
-            this.abilityQuestionTypes = ko.observableArray(['attributes']);
+            this.abilityQuestionTypes = ko.observableArray(['attributes']).extend({ urlSync: {
+                    param: 'abilities',
+                    read: function (value) {
+                        value = [].concat(value).map(function (o) { return o.toLowerCase(); }).filter(function (o) { return ['attributes', 'cooldown', 'manacost'].indexOf(o) !== -1 });
+                        return value.length ? value : ['abilities'];
+                    }
+                }
+            });
             this.abilityQuestionTypes.subscribe(function(changes) {
                 if (self.abilityQuestionTypes().length === 0) {
                     var arr = [];
@@ -419,8 +779,52 @@ $(function () {
             this.abilityQuestionTypesVisible = ko.computed(function () {
                 return self.questionTypes().indexOf('abilities') !== -1;
             });
+
+            // serialized deck settings string, used to check if settings have changed
+            this.deckSettingsState = '';
+            
+            this.serializeDeckSettings = function () {
+                return ko.toJSON({
+                    heroes: self.selectedHeroesBitArray.toBase64UrlSafe(),
+                    attributes: self.selectedAttributesBitArray.toBase64UrlSafe(),
+                    minLevel: self.minLevel(),
+                    maxLevel: self.maxLevel(),
+                    autoPlay: self.autoPlay(),
+                    autoPlayDelay: self.autoPlayDelay(),
+                    drawStrategy: self.drawStrategy(),
+                    questionTypes: self.questionTypes(),
+                    abilityQuestionTypes: self.abilityQuestionTypes()
+                });
+            }
+            
+            this.updateDeck = function () {
+                var selectedAttributes = (this.questionTypes.indexOf('attributes') !== -1) ? this.selectedAttributes() : [];
+                var abilityQuestionTypes = (this.questionTypes.indexOf('abilities') !== -1) ? this.abilityQuestionTypes() : [];
+                this.reset();
+                this.deck = shuffle(filterDeck(DECK, this.selectedHeroes(), selectedAttributes, parseInt(this.minLevel()), parseInt(this.maxLevel()), abilityQuestionTypes));
+                this.deckSettingsState = this.serializeDeckSettings();
+            }
+            this.updateDeck();
+            
+            this.shuffleDeck = function () {
+                this.reset();
+                this.deck = shuffle(this.deck);
+            }
         }
         var vm = new ViewModel();
         ko.applyBindings(vm);
+        
+        $('a[data-toggle="tab"]').on('shown.bs.tab', function (e) {
+            var target = $(e.target).attr("href") // activated tab
+            if (target === '#home') {
+                //console.log(vm.serializeDeckSettings(), vm.deckSettingsState, vm.serializeDeckSettings() !== vm.deckSettingsState);
+                if (vm.serializeDeckSettings() !== vm.deckSettingsState) {
+                    vm.updateDeck();
+                }
+            }
+            else {
+                clearInterval(vm.autoPlayInterval);
+            }
+        });
     });
 });

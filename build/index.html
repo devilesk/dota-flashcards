@@ -28,7 +28,7 @@
         <!-- Tab panes -->
         <div class="tab-content">
             <div role="tabpanel" class="tab-pane active" id="home">
-                <div id="contents" data-bind="html: text, click: run"></div>
+                <div id="contents" data-bind="html: text, click: correct"></div>
                 <button id="btn-user-input" class="btn btn-danger btn-lg btn-block" data-bind="click: wrong, text: state() == 1 ? 'Don\'t know' : 'Got it wrong'"></button>
             </div>
             <div role="tabpanel" class="tab-pane" id="heroes">
@@ -83,6 +83,23 @@
                         <div class="form-group">
                             <label>Level Maximum: <span data-bind="text: maxLevel"></span></label>
                             <input class="range-slider form-control" type="range" min="1" max="25" data-bind="value: maxLevel, valueUpdate: 'input'"/>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <button class="btn btn-primary btn-block" data-bind="click: shuffleDeck">Shuffle</button>
+                    </div>
+                    <div class="form-group">
+                        <label>Card Replacement Strategy</label>
+                        <div class="btn-group btn-group-justified" data-toggle="buttons" data-bind="radio: drawStrategy">
+                            <label class="btn btn-primary">
+                                <input type="radio" name="drawStrategy" value="back" /> Send to Back
+                            </label>
+                            <label class="btn btn-primary">
+                                <input type="radio" name="drawStrategy" value="random" /> Random
+                            </label>
+                            <label class="btn btn-primary">
+                                <input type="radio" name="drawStrategy" value="training" /> Training
+                            </label>
                         </div>
                     </div>
                     <div class="form-group">

@@ -5,7 +5,7 @@
   "main": "src/main.js",
   "scripts": {
     "browserify": "browserify src/main.js -u jquery -u knockout > www/bundle.js",
-    "uglify": "uglifyjs -m -c -- www/bundle.js > build/bundle.min.js",
+    "uglify": "uglifyjs --compress --mangle -- www/bundle.js > build/bundle.min.js",
     "clean:build": "rm -rf build/*",
     "copy:html": "cp www/*.html build/",
     "copy": "npm run copy:html",
@@ -32,9 +32,11 @@
     "dota-hero-calculator-library": "^0.7.0",
     "jquery": "^3.1.1",
     "knockout": "^3.4.1",
+    "lodash": "^4.17.2",
     "replace": "^0.3.0",
     "rev-hash": "^1.0.0",
     "uglify-js": "^2.7.5",
+    "urijs": "^1.18.4",
     "watch": "^1.0.1"
   },
   "browserify": {
