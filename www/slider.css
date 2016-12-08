@@ -1,0 +1,26 @@
+.slider {
+    display: -webkit-box;
+    display: -webkit-flex;
+    display: -ms-flexbox;
+    display: flex;
+    width: 300%;
+}
+.slider.is-animating {
+    -webkit-transition: -webkit-transform 400ms cubic-bezier(0.5, 0, 0.5, 1);
+    transition: -webkit-transform 400ms cubic-bezier(0.5, 0, 0.5, 1);
+    transition: transform 400ms cubic-bezier(0.5, 0, 0.5, 1);
+    transition: transform 400ms cubic-bezier(0.5, 0, 0.5, 1), -webkit-transform 400ms cubic-bezier(0.5, 0, 0.5, 1);
+}
+
+.slider-panel {
+    padding-top: 10%;
+    width: 100%;
+    border-left: 1px solid #ddd;
+    border-right: 1px solid #ddd;
+}
+
+.has-slider {
+    overflow: hidden;
+    position: relative;
+    width: 100%;
+}

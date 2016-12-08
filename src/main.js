@@ -3,7 +3,7 @@ var ko = require('knockout');
 var HeroCalc = require('dota-hero-calculator-library');
 var BitArray = require('bit-array-js');
 var URI = require('urijs');
-var Hammer = require('hammerjs');
+var Slider = require('./slider');
 
 require('./ko.bindingHandlers.checkbox');
 require('./ko.bindingHandlers.radio');
@@ -686,7 +686,7 @@ $(function () {
                 if (self.autoPlay()) {
                     clearTimeout(self.autoPlayInterval);
                     self.autoPlayInterval = setTimeout(function () {
-                        self.run();
+                        self.slider.next();
                     }, self.autoPlayDelay());
                 }            
             }
@@ -705,16 +705,16 @@ $(function () {
             }
 
             this.correct = function () {
-                console.log('btn correct');
+                //console.log('btn correct');
                 clearTimeout(this.autoPlayInterval);
                 this.run();
             }
 
             this.wrong = function () {
-                console.log('btn wrong');
+                //console.log('btn wrong');
                 clearTimeout(this.autoPlayInterval);
                 this.isWrong(true);
-                this.run();
+                this.slider.next();
             }
 
             this.autoPlay = ko.observable(false).extend({ urlSync: {
@@ -816,6 +816,13 @@ $(function () {
                 this.reset();
                 this.deck = shuffle(this.deck);
             }
+            
+            this.slider = new Slider('#slider', {
+                onChange: function () {
+                    //console.log('onChange');
+                    self.correct();
+                }
+        });
         }
         var vm = new ViewModel();
         ko.applyBindings(vm);
@@ -832,130 +839,6 @@ $(function () {
                 clearInterval(vm.autoPlayInterval);
             }
         });
-        
-        var stage = document.getElementById('contents');
-
-        // create a manager for that element
-        var mc = new Hammer.Manager(stage);
-
-        // create a recognizer
-        /*var Tap = new Hammer.Tap();
-        
-        // add the recognizer
-        mc.add(Tap);
-
-        // subscribe to events
-        mc.on('tap', function(e) {
-          console.log(e);
-          // Remove any old one
-          $(".ripple").remove();
-
-          // Setup
-          var posX = $('#container').offset().left,
-              posY = $('#container').offset().top,
-              buttonWidth = $('#container').width(),
-              buttonHeight =  $('#container').height();
-          
-          // Add the element
-          $('#container').prepend("<span class='ripple'></span>");
-
-          
-         // Make it round!
-          if(buttonWidth >= buttonHeight) {
-            buttonHeight = buttonWidth;
-          } else {
-            buttonWidth = buttonHeight; 
-          }
-          
-          // Get the center of the element
-          var x = e.center.x - posX - buttonWidth / 2;
-          var y = e.center.y - posY - buttonHeight / 2;
-          
-         
-          // Add the ripples CSS and start the animation
-          $(".ripple").css({
-            width: buttonWidth,
-            height: buttonHeight,
-            top: y + 'px',
-            left: x + 'px'
-          }).addClass("rippleEffect");
-        });*/
-
-        // create a recognizer
-        var Swipe = new Hammer.Swipe({ threshold: 30 });
-
-        // add the recognizer
-        mc.add(Swipe);
-
-        // subscribe to events
-        mc.on('swipeleft', function(e) {
-            // do something cool
-            //var rotation = Math.round(e.rotation);    
-            //stage.style.transform = 'rotate('+rotation+'deg)';
-            console.log('swipeleft', e);
-            vm.correct();
-            $('#contents').addClass('slideLeft')
-            setTimeout(function() {
-                $('#contents').removeClass('slideLeft');
-            }, 1000);
-        });
-        mc.on('swiperight', function(e) {
-            // do something cool
-            //var rotation = Math.round(e.rotation);    
-            //stage.style.transform = 'rotate('+rotation+'deg)';
-            console.log('swiperight', e);
-            vm.correct();
-            $('#contents').addClass('slideRight')
-            setTimeout(function() {
-                $('#contents').removeClass('slideRight');
-            }, 1000);
-        });
-        mc.on('swipeup', function(e) {
-            // do something cool
-            //var rotation = Math.round(e.rotation);    
-            //stage.style.transform = 'rotate('+rotation+'deg)';
-            console.log('swipeup', e);
-            vm.wrong();
-            $('#contents').addClass('slideUp')
-            $('#btn-user-input').addClass('pullUp')
-            setTimeout(function() {
-                $('#contents').removeClass('slideUp');
-                $('#btn-user-input').removeClass('pullUp')
-            }, 1000);
-        });
-        mc.on('swipedown', function(e) {
-            // do something cool
-            //var rotation = Math.round(e.rotation);    
-            //stage.style.transform = 'rotate('+rotation+'deg)';
-            console.log('swipedown', e);
-            vm.wrong();
-            $('#contents').addClass('slideDown')
-            $('#btn-user-input').addClass('pullUp')
-            setTimeout(function() {
-                $('#contents').removeClass('slideDown');
-                $('#btn-user-input').removeClass('pullUp')
-            }, 1000);
-        });
-
-        var Tap = new Hammer.Tap();
-        
-        // add the recognizer
-        mc.add(Tap);
-
-        // subscribe to events
-        mc.on('tap', function(e) { console.log('tap'); vm.correct(); });
-
-        var stage2 = document.getElementById('btn-user-input');
-
-        // create a manager for that element
-        var mc2 = new Hammer.Manager(stage2);
-        
-        var Tap2 = new Hammer.Tap();
-        
-        // add the recognizer
-        mc2.add(Tap2);
-
-        // subscribe to events
-        mc2.on('tap', function(e) { console.log('tap'); vm.wrong(); });
+        //slider.init('#slider');
     });
 });

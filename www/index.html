@@ -8,6 +8,7 @@
     <meta http-equiv="content-type" content="text/html;charset=UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+    <link rel="stylesheet" href="slider.css">
     <link rel="stylesheet" href="app.css">
 </head>
 
@@ -28,8 +29,14 @@
         <!-- Tab panes -->
         <div class="tab-content">
             <div role="tabpanel" class="tab-pane active" id="home">
-                <div id="contents" data-bind="html: text"></div>
-                <button id="btn-user-input" class="btn btn-danger btn-lg btn-block" data-bind="text: state() == 1 ? 'Don\'t know' : 'Got it wrong'"></button>
+                <div class="has-slider">
+                    <div class="slider" id="slider">
+                        <div class="slider-panel contents" data-bind="html: text"></div>
+                        <div class="slider-panel contents" data-bind="html: text"></div>
+                        <div class="slider-panel contents" data-bind="html: text"></div>
+                    </div>
+                </div>
+                <button id="btn-user-input" class="btn btn-danger btn-lg btn-block" data-bind="click: wrong, text: state() == 1 ? 'Don\'t know' : 'Got it wrong'"></button>
             </div>
             <div role="tabpanel" class="tab-pane" id="heroes">
                 <div id="heroes-options" data-toggle="buttons" class="form-group btn-group-vertical options-list" data-bind="foreach: heroes, checkbox: selectedHeroes">
