@@ -288,246 +288,26 @@ $(function () {
             }
         }
         
-        /*function getAbilityIterator() {
-            var c = 0, i = 0, j = 0, k = 0, l = 0, m = 0, n = 0;
-            
-            return {
-                next: function () {
-                    //console.log(i, j, k, l, m, n);
-                    while (i < heroIds.length) {
-                        var heroId = heroIds[i];
-                        var abilities = heroData['npc_dota_hero_' + heroId].abilities;
-                        while (j < abilities.length) {
-                            var ability = abilities[j];
-                            if (ability.displayname === 'Attribute Bonus' || ability.displayname === '' || ability.displayname === 'Empty') {
-                                j++;
-                                k = 0;
-                                l = 0;
-                                m = 0;
-                                n = 0;
-                                continue;
-                            }
-                            
-                            var maxAbilityLevel = heroModel.getAbilityLevelMax(ability);
-                            while (k < ability.attributes.length) {
-                                var attribute = ability.attributes[k];
-                                if (!attribute.hasOwnProperty('tooltip')) {
-                                    k++;
-                                    l = 0;
-                                    continue;
-                                }
-                                
-                                while (l < maxAbilityLevel) {
-                                    c++;
-                                    l++;
-                                    return {
-                                        id: c,
-                                        kind: 'abilities',
-                                        hero: heroId,
-                                        name: ability.name,
-                                        property: attribute.name,
-                                        level: l
-                                    };
-                                }
-                                k++;
-                                l = 0;
-                            }
-                            
-                            while (m < maxAbilityLevel) {
-                                c++;
-                                m++;
-                                return {
-                                    id: c,
-                                    kind: 'abilities',
-                                    hero: heroId,
-                                    name: ability.name,
-                                    property: 'cooldown',
-                                    level: m
-                                };
-                            }
-                            
-                            while (n < maxAbilityLevel) {
-                                c++;
-                                n++;
-                                return {
-                                    id: c,
-                                    kind: 'abilities',
-                                    hero: heroId,
-                                    name: ability.name,
-                                    property: 'manacost',
-                                    level: n
-                                };
-                            }
-                            
-                            j++;
-                            k = 0;
-                            l = 0;
-                            m = 0;
-                            n = 0;
-                        }
-                        i++;
-                        j = 0;
-                        k = 0;
-                        l = 0;
-                        m = 0;
-                        n = 0;
-                    }
-                    
-                    c = 0, i = 0, j = 0, k = 0, l = 0, m = 0, n = 0;
-                }
-            }
-        }*/
-        
-        /*function getAbilityQuestionCount() {
-            var c = 0;
-            for (var i = 0; i < heroIds.length; i++) {
-                var heroId = heroIds[i];
-                var abilities = heroData['npc_dota_hero_' + heroId].abilities;
-                for (var j = 0; j < abilities.length; j++) {
-                    var ability = abilities[j];
-                    if (ability.displayname === 'Attribute Bonus' || ability.displayname === '' || ability.displayname === 'Empty') continue;
-                    
-                    var maxAbilityLevel = heroModel.getAbilityLevelMax(ability);
-                    for (var k = 0; k < ability.attributes.length; k++) {
-                        var attribute = ability.attributes[k];
-                        if (!attribute.hasOwnProperty('tooltip')) continue;
-                        
-                        for (var l = 0; l < maxAbilityLevel; l++) {
-                            c++;
-                        }
-                    }
-                    
-                    for (var k = 0; k < maxAbilityLevel; k++) {
-                        c++;
-                        c++;
-                    }
-                }
-            }
-            return c;
-        }*/
-        /*function test() {
-            console.log('start');
-            var arr = new BitArray(85362);
-            //console.log(arr.toBase64UrlSafe());
-            var heroModel = new HeroCalc.HeroModel('abaddon');
-            var data = [];
-            var counter = 0;
-            var hc = 0;
-            HeroCalc.HeroOptions.forEach(function (hero) {
-                heroModel.heroId(hero.heroName);
-                for (var i = 1; i <= 25; i++) {
-                    heroModel.selectedHeroLevel(i);
-                    attributes.forEach(function (attribute) {
-                        data.push({
-                            kind: 'attributes',
-                            hero: hero.heroName,
-                            attribute: attribute,
-                            level: i
-                        });
-                        counter++;
-                    });
-                }
-                hc++;
-                heroModel.ability().abilities().forEach(function (ability) {
-                    var maxAbilityLevel = heroModel.getAbilityLevelMax(ability);
-                    ability.attributes.forEach(function (attribute) {
-                        if (attribute.hasOwnProperty('tooltip')) {
-                            for (var i = 0; i < maxAbilityLevel; i++) {
-                                counter++;
-                            }
-                        }
-                    });
-                    for (var i = 0; i < maxAbilityLevel; i++) {
-                        counter++;
-                        counter++;
-                    }
-                });
-            });
-            console.log('end', counter, hc, attributes, attributes.length);
-            console.log('end', data);
-            console.log('end', data.sort(function (a, b) {
-                if (a.hero > b.hero) return -1;
-                if (a.hero < b.hero) return 1;
-                if (a.attribute > b.attribute) return -1;
-                if (a.attribute < b.attribute) return 1;
-                if (a.level > b.level) return -1;
-                if (a.level < b.level) return 1;
-                return 0
-            }));
-        }*/
-        /*function test2() {
-            var data = [];
-            for (var i = 0; i < 89469; i++) {
-                data.push(i);
-            }
-            data = shuffle(data);
-            console.log(data);
-            x = [];
-            for (var i = 0; i < 100; i++) {
-                x.push(draw(data[i]));
-            }
-            console.log(x);
-            alert(x.length);
-        }*/
-        /*function drawAttribute(n) {
-            var questionsPerHero = attributes.length * 25;
-            var heroId = Math.floor(n / questionsPerHero);
-            var attributeLevelRemainder = n % questionsPerHero;
-            var level = Math.floor(attributeLevelRemainder / attributes.length);
-            var attributeRemainder = attributeLevelRemainder % 25;
-            console.log(heroId, level, attributeRemainder, attributeLevelRemainder, (heroId * heroIds.length) + (level * 25) + attributeRemainder, n, heroIds[heroId], level, attributes[attributeRemainder]);
-        }*/
-        
-        /*function draw(n) {
-            if (n < TOTAL_ATTRIBUTE_QUESTIONS) return drawAttribute(n);
-            n = n % TOTAL_ATTRIBUTE_QUESTIONS;
-            if (n >= TOTAL_ABILITY_QUESTIONS) throw "error";
-            var c = 0;
-            for (var i = 0; i < heroIds.length; i++) {
-                var heroId = heroIds[i];
-                var abilities = heroData['npc_dota_hero_' + heroId].abilities;
-                for (var j = 0; j < abilities.length; j++) {
-                    var ability = abilities[j];
-                    if (ability.displayname === 'Attribute Bonus' || ability.displayname === '' || ability.displayname === 'Empty') continue;
-                    
-                    var maxAbilityLevel = heroModel.getAbilityLevelMax(ability);
-                    for (var k = 0; k < ability.attributes.length; k++) {
-                        var attribute = ability.attributes[k];
-                        if (!attribute.hasOwnProperty('tooltip')) continue;
-                        
-                        for (var l = 0; l < maxAbilityLevel; l++) {
-                            if (c === n) return {
-                                kind: 'abilities',
-                                hero: heroId,
-                                name: ability.name,
-                                property: attribute.name,
-                                level: l + 1
-                            }
-                            c++;
-                        }
-                    }
-                    
-                    for (var k = 0; k < maxAbilityLevel; k++) {
-                        if (c === n) return {
-                            kind: 'abilities',
-                            hero: heroId,
-                            name: ability.name,
-                            property: 'cooldown',
-                            level: k + 1
-                        }
-                        c++;
-                        if (c === n) return {
-                            kind: 'abilities',
-                            hero: heroId,
-                            name: ability.name,
-                            property: 'manacost',
-                            level: k + 1
-                        }
-                        c++;
-                    }
-                }
-            }
-        }*/
+        function formatSpeech(text) {
+            return text.toString()
+                        .replace(/<br>/g, ' ')
+                        .replace(/Avg/g, 'Average')
+                        .replace(/Shaman/g, 'Shahman')
+                        .replace(/Jakiro/g, 'Jah-keer-roe')
+                        .replace(/Huskar/g, 'Husk-R')
+                        .replace(/Omniknight/g, 'Omni-knight')
+                        .replace(/Aphotic/g, 'Afotic')
+                        .replace(/Avernus/g, 'Ahvernus')
+                        .replace(/Malefice/g, 'Malifice')
+                        .replace(/Chronosphere/g, 'Chrohnosphere')
+                        .replace(/Omnislash/g, 'Omni-slash')
+                        .replace(/Degen Aura/g, 'D-gen Aura')
+                        .replace(/Coup de Grace/g, 'Coup de Grahs')
+                        .replace(/Squad, Attack!/g, 'Squad Attack!')
+                        .replace(/Sigil/g, 'Frozen Sijhil')
+                        .replace(/Grave Chill/g, 'Graiyv Chill')
+                        .replace(/Familiars/g, 'Familiarz.');
+        }
 
         function ViewModel() {
             var self = this;
@@ -551,7 +331,6 @@ $(function () {
                                 break;
                             }
                         }
-                        //updateQueryStringParam("attributes", self.selectedAttributesBitArray.toBase64UrlSafe());
                     }
                 });
                 uri.setSearch("attributes", self.selectedAttributesBitArray.toBase64UrlSafe());
@@ -567,7 +346,6 @@ $(function () {
                 changes.forEach(function(change) {
                     if (change.status === 'added' || change.status === 'deleted') {
                         self.selectedHeroesBitArray.value(getHeroID(change.value), change.status === 'added');
-                        //updateQueryStringParam("heroes", self.selectedHeroesBitArray.toBase64UrlSafe());
                     }
                 });
                 uri.setSearch("heroes", self.selectedHeroesBitArray.toBase64UrlSafe());
@@ -675,7 +453,7 @@ $(function () {
                 this.state((this.state() + 1) % 2);
 
                 if (this.textToSpeech()) {
-                    responsiveVoice.speak(this.text().toString().replace('<br>', ' '), 'US English Female', {"onend": this.loop});
+                    responsiveVoice.speak(formatSpeech(this.text()), 'US English Female', {"onend": this.loop});
                 }
                 else {
                     this.loop();
@@ -839,6 +617,5 @@ $(function () {
                 clearInterval(vm.autoPlayInterval);
             }
         });
-        //slider.init('#slider');
     });
 });
