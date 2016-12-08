@@ -28,7 +28,7 @@
         <!-- Tab panes -->
         <div class="tab-content">
             <div role="tabpanel" class="tab-pane active" id="home">
-                <div id="contents" data-bind="html: text, click: run"></div>
+                <div id="contents" data-bind="html: text, click: correct"></div>
                 <button id="btn-user-input" class="btn btn-danger btn-lg btn-block" data-bind="click: wrong, text: state() == 1 ? 'Don\'t know' : 'Got it wrong'"></button>
             </div>
             <div role="tabpanel" class="tab-pane" id="heroes">
@@ -86,6 +86,23 @@
                         </div>
                     </div>
                     <div class="form-group">
+                        <button class="btn btn-primary btn-block" data-bind="click: shuffleDeck">Shuffle</button>
+                    </div>
+                    <div class="form-group">
+                        <label>Card Replacement Strategy</label>
+                        <div class="btn-group btn-group-justified" data-toggle="buttons" data-bind="radio: drawStrategy">
+                            <label class="btn btn-primary">
+                                <input type="radio" name="drawStrategy" value="back" /> Send to Back
+                            </label>
+                            <label class="btn btn-primary">
+                                <input type="radio" name="drawStrategy" value="random" /> Random
+                            </label>
+                            <label class="btn btn-primary">
+                                <input type="radio" name="drawStrategy" value="training" /> Training
+                            </label>
+                        </div>
+                    </div>
+                    <div class="form-group">
                         <label>Question Types</label>
                         <div class="btn-group btn-group-justified" data-toggle="buttons" data-bind="checkbox: questionTypes">
                             <label class="btn btn-primary">
@@ -118,7 +135,7 @@
     <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/knockout/3.4.0/knockout-min.js"></script>
     <script src='https://code.responsivevoice.org/responsivevoice.js'></script>
-    <script src="bundle.min.e63cb64aa5.js"></script>
+    <script src="bundle.min.c577d44863.js"></script>
 </body>
 
 </html>
