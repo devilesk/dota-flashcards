@@ -461,7 +461,7 @@ $(function () {
             };
             
             this.loop = function () {
-                if (self.autoPlay()) {
+                if (self.autoPlay() && self.activeTab() === '#home') {
                     clearTimeout(self.autoPlayInterval);
                     self.autoPlayInterval = setTimeout(function () {
                         self.slider.next();
@@ -512,7 +512,7 @@ $(function () {
             this.autoPlayInterval;
             this.autoPlay.subscribe(function(newValue) {
                 if (!newValue) {
-                    clearInterval(self.autoPlayInterval);
+                    clearTimeout(self.autoPlayInterval);
                 }
             });
             
@@ -607,13 +607,16 @@ $(function () {
                         self.loop();
                     }
                 }
-        });
+            });
+            
+            this.activeTab = ko.observable('#home');
         }
         var vm = new ViewModel();
         ko.applyBindings(vm);
         
         $('a[data-toggle="tab"]').on('shown.bs.tab', function (e) {
             var target = $(e.target).attr("href") // activated tab
+            vm.activeTab(target);
             if (target === '#home') {
                 //console.log(vm.serializeDeckSettings(), vm.deckSettingsState, vm.serializeDeckSettings() !== vm.deckSettingsState);
                 if (vm.serializeDeckSettings() !== vm.deckSettingsState) {
@@ -621,7 +624,7 @@ $(function () {
                 }
             }
             else {
-                clearInterval(vm.autoPlayInterval);
+                clearTimeout(vm.autoPlayInterval);
             }
         });
     });
