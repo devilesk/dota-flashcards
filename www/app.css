@@ -34,7 +34,7 @@
     height: 60px;
 }
 #other-content {
-    margin-top: 15px;
+    padding: 25px;
 }
 .btn-default.focus,
 .btn-default:focus {
