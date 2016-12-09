@@ -596,9 +596,16 @@ $(function () {
             }
             
             this.slider = new Slider('#slider', {
-                onChange: function () {
-                    //console.log('onChange');
-                    self.correct();
+                onPanStart: function () {
+                    clearTimeout(self.autoPlayInterval);
+                },
+                onGoTo: function (bChanged) {
+                    if (bChanged) {
+                        self.correct();
+                    }
+                    else {
+                        self.loop();
+                    }
                 }
         });
         }

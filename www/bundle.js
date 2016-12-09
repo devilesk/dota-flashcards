@@ -17992,9 +17992,16 @@ $(function () {
             }
             
             this.slider = new Slider('#slider', {
-                onChange: function () {
-                    //console.log('onChange');
-                    self.correct();
+                onPanStart: function () {
+                    clearTimeout(self.autoPlayInterval);
+                },
+                onGoTo: function (bChanged) {
+                    if (bChanged) {
+                        self.correct();
+                    }
+                    else {
+                        self.loop();
+                    }
                 }
         });
         }
@@ -18032,7 +18039,8 @@ function Slider(selector, opts) {
     // 3. Slide counter
     this.slideCount = 0;
     
-    this.onChange = opts.onChange;
+    this.onGoTo = opts.onGoTo;
+    this.onPanStart = opts.onPanStart;
     
     this.init(selector);
 }
@@ -18067,8 +18075,12 @@ Slider.prototype.init = function(selector) {
         self.next();
     });
     
+    sliderManager.on('panstart', function(e) {
+        if (self.onPanStart) self.onPanStart();
+    });
+    
     sliderManager.on('pan', function(e) {
-
+        
         // 4d. Calculate pixel movements into 1:1 screen percents so gestures track with motion
         var percentage = 100 / self.slideCount * e.deltaX / window.innerWidth;
 
@@ -18105,8 +18117,7 @@ Slider.prototype.next = function() {
 
 // 5. Update current slide
 Slider.prototype.goTo = function(number, bSuppressChangeEvent) {
-    // Determine if slide change callback should be run
-    bSuppressChangeEvent = bSuppressChangeEvent || this.activeSlide === number;
+    var bChanged = this.activeSlide !== number;
     
     // 5a. Stop it from doing weird things like moving to slides that don�t exist
     if (number < 0) {
@@ -18148,7 +18159,7 @@ Slider.prototype.goTo = function(number, bSuppressChangeEvent) {
     }, 400);
     
     // Slide change callback
-    if (this.onChange && !bSuppressChangeEvent) this.onChange();
+    if (this.onGoTo && !bSuppressChangeEvent) this.onGoTo(bChanged);
 };
 
 module.exports = Slider;
