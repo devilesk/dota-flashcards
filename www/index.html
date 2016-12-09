@@ -29,7 +29,7 @@
         <!-- Tab panes -->
         <div class="tab-content">
             <div role="tabpanel" class="tab-pane active" id="home">
-                <div class="has-slider">
+                <div class="has-slider" data-bind="css: { 'info-bar-visible': infoBarVisible }">
                     <div class="slider" id="slider">
                         <div class="slider-panel contents" data-bind="html: text"></div>
                         <div class="slider-panel contents" data-bind="html: text"></div>
@@ -37,6 +37,10 @@
                     </div>
                 </div>
                 <button id="btn-user-input" class="btn btn-danger btn-lg btn-block" data-bind="click: wrong, text: state() == 1 ? 'Don\'t know' : 'Got it wrong'"></button>
+                <div id="info-bar" data-bind="visible: infoBarVisible">
+                    <span class="pull-left" data-bind="text: stats.deck">0</span>
+                    <span class="text-success" data-bind="text: stats.correct">0</span> / <span class="text-danger" data-bind="text: stats.wrong">0</span> / <span class="text-primary" data-bind="text: stats.correct() + stats.wrong()">0</span>
+                </div>
             </div>
             <div role="tabpanel" class="tab-pane" id="heroes">
                 <div id="heroes-options" data-toggle="buttons" class="form-group btn-group-vertical options-list" data-bind="foreach: heroes, checkbox: selectedHeroes">
@@ -71,7 +75,19 @@
             <div role="tabpanel" class="tab-pane" id="other">
                 <div id="other-content" class="col-md-12">
                     <div class="form-group">
-                        <label>Card Replacement Strategy</label>
+                        <label>Card Replacement Strategy <a role="button" data-toggle="collapse" href="#help-card-strategy" aria-expanded="false" aria-controls="help-card-strategy">[?]</a></label>
+                        <div class="collapse" id="help-card-strategy">
+                            <div class="well help-well">
+                                <dl class="dl-horizontal">
+                                    <dt>Send to Back</dt>
+                                    <dd>Return cards to the end of the deck</dd>
+                                    <dt>Random</dt>
+                                    <dd>Return cards to a random position</dd>
+                                    <dt>Training</dt>
+                                    <dd>Return skipped/wrong cards towards the front and correct cards towards the back.</dd>
+                                </dl>
+                            </div>
+                        </div>
                         <div class="btn-group btn-group-justified" data-toggle="buttons" data-bind="radio: drawStrategy">
                             <label class="btn btn-primary">
                                 <input type="radio" name="drawStrategy" value="back" /> Send to Back
@@ -129,12 +145,22 @@
                             <input type="checkbox" data-bind="checkbox: textToSpeech" /> Text to Speech
                         </label>
                         <label class="btn btn-block btn-primary">
-                            <input type="checkbox" data-bind="checkbox: autoPlay" /> Auto-play
+                            <input type="checkbox" data-bind="checkbox: autoPlay" /> Autoplay
                         </label>
                     </div>
                     <div class="form-group">
-                        <label>Auto-play Delay</label>
+                        <label>Autoplay Interval <a role="button" data-toggle="collapse" href="#help-autoplay" aria-expanded="false" aria-controls="help-autoplay">[?]</a></label>
+                        <div class="collapse" id="help-autoplay">
+                            <div class="well help-well">
+                                Time between cards in milliseconds when autoplay is on.
+                            </div>
+                        </div>
                         <input class="form-control" type="text" data-bind="value: autoPlayDelay"/>
+                    </div>
+                    <div class="form-group" data-toggle="buttons">
+                        <label class="btn btn-block btn-primary">
+                            <input type="checkbox" data-bind="checkbox: infoBarVisible" /> Info bar
+                        </label>
                     </div>
                 </div>
             </div>

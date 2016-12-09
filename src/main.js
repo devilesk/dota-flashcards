@@ -374,6 +374,8 @@ $(function () {
             
             this.reset = function () {
                 this.state(0);
+                this.stats.correct(0);
+                this.stats.wrong(0);
                 if (this.card) {
                     this.deck.push(this.card);
                 }
@@ -415,12 +417,12 @@ $(function () {
                         }
                         this.deck.splice(index, 0, this.card);
                         
-                        /*if (this.isWrong()) {
-                            this.card.wrong++;
+                        if (this.isWrong()) {
+                            this.stats.wrong(this.stats.wrong()+1);
                         }
                         else {
-                            this.card.correct++;
-                        }*/
+                            this.stats.correct(this.stats.correct()+1);
+                        }
                     }
                 
                     this.card = this.deck.pop();
@@ -478,6 +480,14 @@ $(function () {
                 this.isWrong(true);
                 this.slider.next();
             }
+
+            this.infoBarVisible = ko.observable(true).extend({ urlSync: {
+                    param: 'infobar',
+                    read: function (value) {
+                        return value != false && value !== 'false';
+                    }
+                }
+            });
 
             this.autoPlay = ko.observable(false).extend({ urlSync: {
                     param: 'autoplay',
@@ -548,6 +558,12 @@ $(function () {
                 return self.questionTypes().indexOf('abilities') !== -1;
             });
 
+            this.stats = {
+                deck: ko.observable(0),
+                correct: ko.observable(0),
+                wrong: ko.observable(0)
+            }
+            
             // serialized deck settings string, used to check if settings have changed
             this.deckSettingsState = '';
             
@@ -571,6 +587,7 @@ $(function () {
                 this.reset();
                 this.deck = shuffle(filterDeck(DECK, this.selectedHeroes(), selectedAttributes, parseInt(this.minLevel()), parseInt(this.maxLevel()), abilityQuestionTypes));
                 this.deckSettingsState = this.serializeDeckSettings();
+                this.stats.deck(this.deck.length);
             }
             this.updateDeck();
             
