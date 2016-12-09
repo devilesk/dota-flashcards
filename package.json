@@ -1,6 +1,6 @@
 {
   "name": "dota-flashcards",
-  "version": "0.5.4",
+  "version": "0.5.5",
   "description": "Dota 2 Flashcards App",
   "main": "src/main.js",
   "scripts": {
