@@ -9,20 +9,20 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
     
-    <link rel="stylesheet" href="app.min.30c9f4cfbe.css">
+    <link rel="stylesheet" href="app.min.310751513d.css">
 </head>
 
 <body>
     <div id="container" class="col-md-12">
         <!-- Nav tabs -->
-        <ul class="nav nav-tabs" role="tablist">
-            <li role="presentation" class="active"><a href="#home" aria-controls="home" role="tab" data-toggle="tab">Home</a>
+        <ul id="tabs" class="nav nav-tabs" role="tablist">
+            <li role="presentation" class="active"><a href="#home" aria-controls="home" role="tab" data-toggle="tab"><span class="tab-text">Home</span><span class="tab-icon glyphicon glyphicon-home"></span></a>
             </li>
-            <li role="presentation"><a href="#heroes" aria-controls="heroes" role="tab" data-toggle="tab">Heroes</a>
+            <li role="presentation"><a href="#heroes" aria-controls="heroes" role="tab" data-toggle="tab"><span class="tab-text">Heroes</span><span class="tab-icon glyphicon glyphicon-user"></span> <span class="tab-icon glyphicon glyphicon-list"></a>
             </li>
-            <li role="presentation"><a href="#attributes" aria-controls="attributes" role="tab" data-toggle="tab">Attributes</a>
+            <li role="presentation"><a href="#attributes" aria-controls="attributes" role="tab" data-toggle="tab"><span class="tab-text">Attributes</span><span class="tab-icon glyphicon glyphicon-tower"></span> <span class="tab-icon glyphicon glyphicon-list"></a>
             </li>
-            <li role="presentation"><a href="#other" aria-controls="other" role="tab" data-toggle="tab">Settings</a>
+            <li role="presentation"><a href="#other" aria-controls="other" role="tab" data-toggle="tab"><span class="tab-text">Settings</span><span class="tab-icon glyphicon glyphicon-cog"></span></a>
             </li>
         </ul>
 
@@ -117,7 +117,7 @@
                     </div>
                     <div class="form-group well" data-bind="visible: abilityQuestionTypesVisible">
                         <label>Ability Categories</label>
-                        <div class="btn-group btn-group-justified" data-toggle="buttons" data-bind="checkbox: abilityQuestionTypes">
+                        <div class="btn-group btn-group-justified btn-group-sm" data-toggle="buttons" data-bind="checkbox: abilityQuestionTypes">
                             <label class="btn btn-primary">
                                 <input type="checkbox" value="attributes" /> Properties
                             </label>
