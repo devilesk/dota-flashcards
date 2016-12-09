@@ -108,99 +108,62 @@ $(function () {
                 }
             }
             
-            var c = heroIds.length * attributes.length * 25, i = 0, j = 0, k = 0, l = 0, m = 0, n = 0;
-            while (i < heroIds.length) {
+            var c = heroIds.length * attributes.length * 25;
+            for (var i = 0; i < heroIds.length; i++) {
                 var heroId = heroIds[i];
                 var abilities = heroData['npc_dota_hero_' + heroId].abilities;
-                while (j < abilities.length) {
+                for (var j = 0; j < abilities.length; j++) {
                     var ability = abilities[j];
-                    if (ability.displayname === 'Attribute Bonus' || ability.displayname === '' || ability.displayname === 'Empty') {
-                        j++;
-                        k = 0;
-                        l = 0;
-                        m = 0;
-                        n = 0;
-                        continue;
-                    }
+                    if (ability.displayname === 'Attribute Bonus' || ability.displayname === '' || ability.displayname === 'Empty') continue;
                     
                     var maxAbilityLevel = heroModel.getAbilityLevelMax(ability);
-                    while (k < ability.attributes.length) {
+                    for (var k = 0; k < ability.attributes.length; k++) {
                         var attribute = ability.attributes[k];
-                        if (!attribute.hasOwnProperty('tooltip')) {
-                            k++;
-                            l = 0;
-                            continue;
-                        }
+                        if (!attribute.hasOwnProperty('tooltip')) continue;
                         
-                        while (l < maxAbilityLevel) {
-                            l++;
+                        for (var l = 0; l < maxAbilityLevel; l++) {
                             DECK.push({
                                 id: c,
                                 kind: 'abilities',
                                 hero: heroId,
                                 name: ability.name,
                                 property: attribute.name,
-                                level: l
+                                level: l + 1
                             });
                             c++;
                         }
-                        k++;
-                        l = 0;
                     }
                     
-                    while (m < maxAbilityLevel) {
-                        m++;
+                    for (var m = 0; m < maxAbilityLevel; m++) {
                         DECK.push({
                             id: c,
                             kind: 'abilities',
                             hero: heroId,
                             name: ability.name,
                             property: 'cooldown',
-                            level: m
+                            level: m + 1
                         });
                         c++;
                     }
                     
-                    while (n < maxAbilityLevel) {
-                        n++;
+                    for (var n = 0; n < maxAbilityLevel; n++) {
                         DECK.push({
                             id: c,
                             kind: 'abilities',
                             hero: heroId,
                             name: ability.name,
                             property: 'manacost',
-                            level: n
+                            level: n + 1
                         });
                         c++;
                     }
-                    
-                    j++;
-                    k = 0;
-                    l = 0;
-                    m = 0;
-                    n = 0;
                 }
-                i++;
-                j = 0;
-                k = 0;
-                l = 0;
-                m = 0;
-                n = 0;
             }
-                    
-            /*var iter = getAbilityIterator();
-            var q = iter.next();
-            while (q) {
-                q.id += heroIds.length * attributes.length * 25;
-                //q.correct = 0;
-                //q.wrong = 0;
-                DECK.push(q);
-                q = iter.next();
-            }*/
             return DECK;
         }
         //var t0 = performance.now();
         var DECK = buildDeck();
+        console.log(DECK);
         //var t1 = performance.now();
         //alert("Deck build took " + (t1 - t0) + "ms.")
         
