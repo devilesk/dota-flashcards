@@ -79,6 +79,21 @@ $(function () {
             }
         }
         
+        function formatValue(value) {
+            switch (value) {
+                case 'agi':
+                    return 'Agility';
+                break;
+                case 'str':
+                    return 'Strength';
+                break;
+                case 'int':
+                    return 'Intelligence';
+                break;
+            }
+            return parseFloat(parseFloat(value).toFixed(2)).toString();
+        }
+        
         var attributes = attributeOptions.map(function (a) { return a.id; });
         
         function getHeroID(hero) {
@@ -224,7 +239,7 @@ $(function () {
             switch (card.kind) {
                 case 'attributes':
                     heroModel.selectedHeroLevel(card.level);
-                    return getAttributeValue(heroModel, card.name);
+                    return formatValue(getAttributeValue(heroModel, card.name));
                 break;
                 case 'abilities':
                     var ability = heroData['npc_dota_hero_' + card.hero].abilities.filter(function (ability) { return ability.name == card.name })[0]
@@ -246,7 +261,7 @@ $(function () {
                         var value = values[Math.max(0, card.level - 1)];
                     }
                 
-                    return value;
+                    return formatValue(value);
                 break;
             }
         }
