@@ -22,8 +22,8 @@ $(function () {
             {id: "totalStr", name: "Strength"},
             {id: "health", name: "HP"},
             {id: "mana", name: "Mana"},
-            {id: "healthregen", name: "HP Regen"},
-            {id: "manaregen", name: "Mana Regen"},
+            {id: "healthregen", name: "HP Regeneration"},
+            {id: "manaregen", name: "Mana Regeneration"},
             {id: "totalMovementSpeed", name: "Movement Speed"},
             {id: "totalTurnRate", name: "Turn Rate"},
             {id: "baseDamageMin", name: "Attack Damage Min"},
@@ -293,6 +293,8 @@ $(function () {
                         .replace(/<br>/g, ' ')
                         .replace(/Avg/g, 'Average')
                         .replace(/Shaman/g, 'Shahman')
+                        .replace(/Techies/g, 'Tekkies')
+                        .replace(/Alchemist/g, 'Alkemist')
                         .replace(/Jakiro/g, 'Jah-keer-roe')
                         .replace(/Huskar/g, 'Husk-R')
                         .replace(/Omniknight/g, 'Omni-knight')
@@ -312,7 +314,11 @@ $(function () {
         function ViewModel() {
             var self = this;
             this.attributes = ko.observableArray(attributeOptions);
-            this.heroes = HeroCalc.HeroOptions;
+            this.heroes = HeroCalc.HeroOptions.sort(function (a, b) {
+                if (a.heroDisplayName < b.heroDisplayName) return -1;
+                if (a.heroDisplayName > b.heroDisplayName) return 1;
+                return 0;
+            });
             var uri = new URI();
             this.selectedAttributesBitArray = new BitArray(32);
             this.selectedAttributesBitArray.fromBase64UrlSafe(uri.query(true)['attributes']);
