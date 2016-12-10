@@ -4,23 +4,24 @@
   "description": "Dota 2 Flashcards App",
   "main": "src/main.js",
   "scripts": {
-    "browserify": "browserify src/main.js -u jquery -u knockout > www/bundle.js",
+    "browserify": "browserify src/main.js -u jquery -u knockout -u ./config --standalone DotaFlashCardsApp > www/bundle.js",
     "uglify": "uglifyjs --compress drop_console --mangle -- www/bundle.js > build/bundle.min.js",
     "clean:build": "rm -rf build/*",
+    "preprocess:html": "node scripts/preprocess.js",
     "copy:html": "cp www/*.html build/",
-    "copy": "npm run copy:html",
-    "replace:html": "replace 'bundle.js' 'bundle.min.js' build/index.html",
+    "replace:js": "replace 'bundle.js' 'bundle.min.js' build/index.html",
     "replace:css": "replace 'app.css' 'app.min.css' build/index.html && replace '<link rel=\"stylesheet\" href=\"slider.css\">' '' build/index.html",
-    "replace": "npm run replace:html && npm run replace:css",
+    "replace": "npm run replace:js && npm run replace:css",
     "build:css": "cleancss -o build/app.min.css www/slider.css www/app.css",
     "build:js": "npm run browserify && npm run uglify",
-    "build": "npm run clean:build && npm run build:js && npm run copy && npm run replace && npm run build:css",
+    "build:html": "npm run preprocess:html && npm run copy:html && npm run replace",
+    "build": "npm run clean:build && npm run build:js && npm run build:html && npm run build:css",
     "test": "echo \"Error: no test specified\" && exit 1",
     "stage:rev": "node scripts/rev.js",
     "stage": "npm run build && npm run stage:rev",
     "deploy:copy": "node scripts/deploy.js",
     "deploy": "npm run stage && npm run deploy:copy",
-    "watch": "watch 'npm run browserify' src"
+    "watch": "watch 'npm run browserify && npm run preprocess:html' src"
   },
   "author": "devilesk <devilesk@gmail.com> (http://devilesk.com)",
   "license": "ISC",
@@ -29,16 +30,20 @@
     "browserify": "^13.1.1",
     "browserify-shim": "^3.8.12",
     "clean-css": "^3.4.21",
-    "dota-hero-calculator-library": "^0.7.0",
+    "dota-hero-calculator-library": "^0.8.0",
     "hammerjs": "^2.0.8",
     "jquery": "^3.1.1",
     "knockout": "^3.4.1",
     "lodash": "^4.17.2",
+    "preprocess": "^3.1.0",
     "replace": "^0.3.0",
     "rev-hash": "^1.0.0",
     "uglify-js": "^2.7.5",
     "urijs": "^1.18.4",
     "watch": "^1.0.1"
+  },
+  "browser": {
+    "urijs": "./src/URI.js"
   },
   "browserify": {
     "transform": [
@@ -47,7 +52,8 @@
   },
   "browserify-shim": {
     "knockout": "global:ko",
-    "jquery": "global:$"
+    "jquery": "global:$",
+    "./config": "global:appConfig"
   },
   "dependencies": {},
   "repository": {

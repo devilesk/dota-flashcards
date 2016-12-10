@@ -1,17 +1,20 @@
 var $ = require('jquery');
 var ko = require('knockout');
-var HeroCalc = require('dota-hero-calculator-library');
+//var HeroCalc = require('dota-hero-calculator-library');
+var HeroModel = require('dota-hero-calculator-library/src/herocalc/hero/HeroModel');
+var HeroOptions = require('dota-hero-calculator-library/src/herocalc/hero/heroOptionsArray');
 var BitArray = require('bit-array-js');
 var URI = require('urijs');
 var Slider = require('./slider');
+var responsiveVoice = require('./responsivevoice');
 
 require('./ko.bindingHandlers.checkbox');
 require('./ko.bindingHandlers.radio');
 require('./ko.extenders.urlSync');
 
-$(function () {
+var App = function () {
 
-    HeroCalc.init("/media/js/herodata.json","/media/js/itemdata.json","/media/js/unitdata.json", function () {
+    //HeroCalc.init(null, null, null, function () {
         var attributeOptions = [
             {id: "totalArmorPhysical", name: "Armor"},
             {id: "totalArmorPhysicalReduction", name: "Physical Damage Reduction"},
@@ -97,12 +100,13 @@ $(function () {
         var attributes = attributeOptions.map(function (a) { return a.id; });
         
         function getHeroID(hero) {
-            return HeroCalc.Data.heroData['npc_dota_hero_' + hero].HeroID;
+            return HeroCalcData.heroData['npc_dota_hero_' + hero].HeroID;
         }
 
-        var heroData = HeroCalc.Data.heroData;
-        var heroIds = HeroCalc.HeroOptions.map(function (hero) { return hero.heroName });
-        var heroModel = new HeroCalc.HeroModel('abaddon');
+        var heroData = HeroCalcData.heroData;
+        var heroOptions = HeroOptions.init(HeroCalcData.heroData);
+        var heroIds = heroOptions.map(function (hero) { return hero.heroName });
+        var heroModel = new HeroModel(HeroCalcData.heroData, HeroCalcData.itemData, 'abaddon');
         
         function buildDeck() {
             var DECK = [];
@@ -292,7 +296,7 @@ $(function () {
         function ViewModel() {
             var self = this;
             this.attributes = ko.observableArray(attributeOptions);
-            this.heroes = HeroCalc.HeroOptions.sort(function (a, b) {
+            this.heroes = heroOptions.sort(function (a, b) {
                 if (a.heroDisplayName < b.heroDisplayName) return -1;
                 if (a.heroDisplayName > b.heroDisplayName) return 1;
                 return 0;
@@ -628,5 +632,7 @@ $(function () {
                 clearTimeout(vm.autoPlayInterval);
             }
         });
-    });
-});
+    //});
+};
+console.log('bundle.js');
+module.exports = App;

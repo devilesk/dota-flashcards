@@ -31,9 +31,9 @@
             <div role="tabpanel" class="tab-pane active" id="home">
                 <div class="has-slider" data-bind="css: { 'info-bar-visible': infoBarVisible }">
                     <div class="slider" id="slider">
-                        <div class="slider-panel contents" data-bind="html: text"></div>
-                        <div class="slider-panel contents" data-bind="html: text"></div>
-                        <div class="slider-panel contents" data-bind="html: text"></div>
+                        <div class="slider-panel contents" data-bind="html: text">Loading...</div>
+                        <div class="slider-panel contents" data-bind="html: text">Loading...</div>
+                        <div class="slider-panel contents" data-bind="html: text">Loading...</div>
                     </div>
                 </div>
                 <button id="btn-user-input" class="btn btn-danger btn-lg btn-block" data-bind="click: wrong, text: state() == 1 ? 'Don\'t know' : 'Got it wrong'"></button>
@@ -169,8 +169,15 @@
     <script src="//ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js"></script>
     <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/knockout/3.4.0/knockout-min.js"></script>
-    <script src='https://code.responsivevoice.org/responsivevoice.js'></script>
-    <script src="bundle.min.9e9467af01.js"></script>
+    <script>
+window.HeroCalcData = {};
+$.when(
+    $.getJSON("/media/js/herodata.json", function (data) {HeroCalcData.heroData = data;}),
+    $.getJSON("/media/js/itemdata.json", function (data) {HeroCalcData.itemData = data;}),
+    $.getJSON("/media/js/unitdata.json", function (data) {HeroCalcData.unitData = data;}),
+    $.ajax({dataType: "script", cache: true, url: "bundle.min.2684f6900e.js"})
+).done(function () { DotaFlashCardsApp(); });
+    </script>
 </body>
 
 </html>
