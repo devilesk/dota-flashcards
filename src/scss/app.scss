@@ -1,0 +1,94 @@
+@import 'slider';
+
+body, html {
+    height: 100%;
+}
+
+.tab-content {
+    height: calc(100% - 42px);
+}
+.options-list {
+    height: 100%;
+    overflow-y: scroll;
+    width: 100%;
+    margin-bottom: 0;
+    height: calc(100% - 34px);
+}
+#tabs > li > a {
+    height: 42px;
+}
+#container {
+    height: 100%;
+    padding: 0;
+}
+#info-bar {
+    height: 20px;
+    background-color: #ddd;
+    line-height: 20px;
+    font-family: monospace;
+    text-align: right;
+    padding: 0px 15px;
+}
+.contents {
+    font-size: 40px;
+    height: 100%;
+    padding: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+.tab-pane, #slider {
+    height: 100%;
+}
+.has-slider {
+    height: calc(100% - 60px);
+}
+.has-slider.info-bar-visible {
+    height: calc(100% - 80px);
+}
+#home {
+    overflow: hidden;
+}
+#btn-user-input {
+    height: 60px;
+}
+#other {
+    height: 42px;
+}
+#other-content {
+    padding: 25px;
+}
+.tab-icon {
+    line-height: inherit;
+}
+@media (max-width: 339px) {
+    .tab-text {
+        display: none;
+    }
+}
+@media (min-width: 340px) {
+    .tab-icon {
+        display: none;
+    }
+}
+.help-well .dl-horizontal {
+    margin-bottom: 0;
+}
+.btn-default.focus,
+.btn-default:focus {
+    background-color: #fff;
+}
+.btn-primary.focus,
+.btn-primary:focus {
+    background-color: #337ab7;
+}
+.btn-default.focus.active {
+    background-color: #e6e6e6;
+}
+.btn-primary.focus.active {
+    background-color: #286090;
+}
+.range-slider {
+    padding: 10px;
+}

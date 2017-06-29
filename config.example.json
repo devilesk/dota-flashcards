@@ -1,0 +1,17 @@
+{
+    "appName": "DotaFlashCardsApp",
+    "rollbar": {
+        "client_token": "",
+        "server_token": "",
+        "local_username": "",
+        "username": "",
+        "sourceMappingURLPrefix": ""
+    },
+    "deployPath": {
+        "production": "dist",
+        "development": "dist"
+    },
+    "heroDataPath": "/media/js/herodata.json",
+    "itemDataPath": "/media/js/itemdata.json",
+    "unitDataPath": "/media/js/unitdata.json"
+}

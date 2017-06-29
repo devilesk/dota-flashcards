@@ -1,0 +1,7 @@
+---
+extends: base.j2
+title: Dota 2 Flashcards
+description: Dota 2 Flashcards. Train your heroes, items, and abilities knowledge using flashcards.
+active_menu: page-webapps
+header: Hero Flashcards
+---

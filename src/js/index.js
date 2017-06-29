@@ -12,6 +12,13 @@ require('./ko.bindingHandlers.checkbox');
 require('./ko.bindingHandlers.radio');
 require('./ko.extenders.urlSync');
 
+var rollbar = require('./rollbar');
+var buildDate = "#build_date";
+//document.getElementById('buildDate').innerHTML = buildDate;
+
+var releaseTag = "#release_tag";
+//document.getElementById('releaseTag').innerHTML = releaseTag;
+
 var App = function () {
 
     //HeroCalc.init(null, null, null, function () {
