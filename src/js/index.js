@@ -14,10 +14,10 @@ require('./ko.extenders.urlSync');
 
 var rollbar = require('./rollbar');
 var buildDate = "#build_date";
-//document.getElementById('buildDate').innerHTML = buildDate;
+document.getElementById('buildDate').innerHTML = buildDate;
 
 var releaseTag = "#release_tag";
-//document.getElementById('releaseTag').innerHTML = releaseTag;
+document.getElementById('releaseTag').innerHTML = releaseTag;
 
 var App = function () {
 

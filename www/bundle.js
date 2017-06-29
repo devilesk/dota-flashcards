@@ -16058,11 +16058,11 @@ require('./ko.bindingHandlers.radio');
 require('./ko.extenders.urlSync');
 
 var rollbar = require('./rollbar');
-var buildDate = "2017-06-29 12:33:31 UTC";
-//document.getElementById('buildDate').innerHTML = buildDate;
+var buildDate = "2017-06-29 12:39:20 UTC";
+document.getElementById('buildDate').innerHTML = buildDate;
 
 var releaseTag = "0.8.0";
-//document.getElementById('releaseTag').innerHTML = releaseTag;
+document.getElementById('releaseTag').innerHTML = releaseTag;
 
 var App = function () {
 
@@ -16953,7 +16953,7 @@ var rollbarConfig = {
         client: {
             javascript: {
                 source_map_enabled: true,
-                code_version: "1e9575b8465b12f5243f2a24f718d072d7d4cb0d",
+                code_version: "4227c492ded68dedf6da8f582a14f6590b35778e",
                 // Optionally have Rollbar guess which frames the error was thrown from
                 // when the browser does not provide line and column numbers.
                 guess_uncaught_frames: true
