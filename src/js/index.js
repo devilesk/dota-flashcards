@@ -26,6 +26,7 @@ var App = function () {
             {id: "totalArmorPhysical", name: "Armor"},
             {id: "totalArmorPhysicalReduction", name: "Physical Damage Reduction"},
             {id: "totalMagicResistance", name: "Magic Resistance"},
+            {id: "totalStatusResistance", name: "Status Resistance"},
             {id: "totalattackrange", name: "Attack Range"},
             {id: "totalAgi", name: "Agility"},
             {id: "totalInt", name: "Intelligence"},
@@ -80,9 +81,33 @@ var App = function () {
         };
         
         function getAttributeValue(heroModel, attribute) {
-            //console.log('getAttributeValue', heroModel, attribute);
+            console.log('getAttributeValue', heroModel, attribute);
             if (heroModel.hasOwnProperty(attribute)) {
-                return heroModel[attribute]();
+                switch (attribute) {
+                    case 'totalAgi':
+                    case 'totalInt':
+                    case 'totalStr':
+                    case 'health':
+                    case 'healthregen':
+                    case 'mana':
+                    case 'manaregen':
+                    case 'totalArmorPhysical':
+                        return heroModel[attribute]().total.toFixed(2);
+                    break;
+                    case 'totalArmorPhysicalReduction':
+                    case 'totalStatusResistance':
+                    case 'totalMagicResistance':
+                    case 'evasion':
+                    case 'bash':
+                    case 'critChance':
+                    case 'missChance':
+                    case 'lifesteal':
+                        return (heroModel[attribute]() * 100).toFixed(2);
+                    break;
+                    default:
+                        return heroModel[attribute]();
+                    break;
+                }
             }
             else {
                 return heroModel.heroData()[attribute];
